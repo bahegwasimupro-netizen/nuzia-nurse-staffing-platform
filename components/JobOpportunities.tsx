@@ -1,6 +1,17 @@
 import { useLang } from "./language";
 import { MapPin, Plane, Briefcase, Clock, ArrowRight, CheckCircle, Building2, Stethoscope, Star, DollarSign } from "lucide-react";
 
+function futureDate(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toLocaleDateString("sw-TZ", { year: "numeric", month: "long", day: "numeric" });
+}
+
+function daysAgo(days: number, lang: string): string {
+  if (lang === "sw") return `Siku ${days} zilizopita`;
+  return `${days} day${days > 1 ? "s" : ""} ago`;
+}
+
 const localJobs = [
   {
     title: "ICU Nurse",
@@ -8,8 +19,8 @@ const localJobs = [
     location: "Dar es Salaam",
     type: "Full-time",
     salary: "TSh 800,000-1,200,000/mwezi",
-    posted: "Siku 2 zilizopita",
-    deadline: "Julai 30, 2025",
+    postedDays: 2,
+    deadlineDays: 45,
     description: "Tafuta muuguzi mwenye ujuzi wa ICU kwa hospitali yetu. Uzoefu wa miaka 3+ unahitajika.",
     descriptionEn: "Seeking an experienced ICU nurse. 3+ years experience required.",
     benefits: ["Bima ya afya", "Likizo", "Mafunzo ya ziada", "Usafiri"],
@@ -21,8 +32,8 @@ const localJobs = [
     location: "Dar es Salaam",
     type: "Full-time",
     salary: "TSh 700,000-1,000,000/mwezi",
-    posted: "Siku 5 zilizopita",
-    deadline: "Agosti 15, 2025",
+    postedDays: 5,
+    deadlineDays: 60,
     description: "Muuguzi wa uzazi ana hitajika kwa kitengo chetu cha uzazi. Leseni ya TNMC lazima.",
     descriptionEn: "Midwife needed for our maternity ward. TNMC license mandatory.",
     benefits: ["Bima ya afya", "Mishahara ya ziada", "Nyumba"],
@@ -34,8 +45,8 @@ const localJobs = [
     location: "Dodoma",
     type: "Full-time",
     salary: "TSh 650,000-900,000/mwezi",
-    posted: "Siku 1 iliyopita",
-    deadline: "Agosti 1, 2025",
+    postedDays: 1,
+    deadlineDays: 30,
     description: "Nafasi ya muuguzi wa watoto katika hospitali mpya ya kitaifa.",
     descriptionEn: "Pediatric nurse position at Tanzania's newest national hospital.",
     benefits: ["Bima ya afya", "Likizo", "Mafunzo"],
@@ -47,8 +58,8 @@ const localJobs = [
     location: "Dar es Salaam",
     type: "Contract",
     salary: "TSh 900,000-1,300,000/mwezi",
-    posted: "Siku 3 zilizopita",
-    deadline: "Agosti 10, 2025",
+    postedDays: 3,
+    deadlineDays: 50,
     description: "Muuguzi wa upasuaji ana hitajika kwa mikataba ya muda.",
     descriptionEn: "Theatre nurse needed for short-term contracts.",
     benefits: ["Bima ya afya", "Ushirikiano wa kimataifa"],
@@ -64,8 +75,8 @@ const internationalJobs = [
     hospital: "NHS Trust Hospitals",
     salary: "GBP 2,200-2,800/mwezi",
     type: "Full-time",
-    posted: "Siku 1 iliyopita",
-    deadline: "Septemba 30, 2025",
+    postedDays: 1,
+    deadlineDays: 90,
     description: "Nafasi za muuguzi wa ICU katika hospitali za NHS nchini Uingereza. Usajili wa rahisi kupitia Nuzia.",
     descriptionEn: "ICU nurse positions at NHS hospitals in UK. Easy registration through Nuzia.",
     benefits: ["Bima ya afya ya bure", "Likizo ya wiki 28", "Mafunzo ya bure", "Kukodisha nyumba"],
@@ -78,8 +89,8 @@ const internationalJobs = [
     hospital: "Multiple Healthcare Systems",
     salary: "USD 4,000-6,000/mwezi",
     type: "Full-time",
-    posted: "Siku 3 zilizopita",
-    deadline: "Oktoba 15, 2025",
+    postedDays: 3,
+    deadlineDays: 120,
     description: "Fursa za muuguzi nchini Marekani. Msaada kamili wa usajili wa NCLEX na visa.",
     descriptionEn: "Nurse positions in the US. Full support for NCLEX registration and visa.",
     benefits: ["Green Card Sponsorship", "Bima ya afya", "Mafunzo", "Relocation package"],
@@ -92,8 +103,8 @@ const internationalJobs = [
     hospital: "University Hospital Berlin",
     salary: "EUR 2,500-3,200/mwezi",
     type: "Full-time",
-    posted: "Siku 7 zilizopita",
-    deadline: "Novemba 1, 2025",
+    postedDays: 7,
+    deadlineDays: 150,
     description: "Muuguzi wa wazee nchini Ujerumani. Mafunzo ya lugha ya Ujerumani yatatolewa bure.",
     descriptionEn: "Geriatric nurse in Germany. Free German language training provided.",
     benefits: ["Bima ya afya", "Bure la lugha", "Usafiri", "Likizo ya wiki 30"],
@@ -106,8 +117,8 @@ const internationalJobs = [
     hospital: "Saudi German Hospital",
     salary: "SAR 5,000-8,000/mwezi",
     type: "Full-time",
-    posted: "Siku 2 zilizopita",
-    deadline: "Septemba 15, 2025",
+    postedDays: 2,
+    deadlineDays: 75,
     description: "Muuguzi wa upasuaji katika hospitali bora ya kibinafsi nchini Saudi Arabia.",
     descriptionEn: "Theatre nurse at a top private hospital in Saudi Arabia.",
     benefits: ["Bure la nyumba", "Bure la usafiri", "Bima ya afya", "Likizo ya wiki 36"],
@@ -176,8 +187,8 @@ export function JobOpportunities() {
                   ))}
                 </div>
                 <div className="flex items-center justify-between text-xs text-slate-400 mb-4">
-                  <span>{job.posted}</span>
-                  <span>{lang === "sw" ? "Mwisho:" : "Deadline:"} {job.deadline}</span>
+                  <span>{daysAgo(job.postedDays, lang)}</span>
+                  <span>{lang === "sw" ? "Mwisho:" : "Deadline:"} {futureDate(job.deadlineDays)}</span>
                 </div>
                 <button className="w-full bg-primary text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
                   {t("jobs.apply")} <ArrowRight className="w-4 h-4" />
@@ -231,8 +242,8 @@ export function JobOpportunities() {
                   ))}
                 </div>
                 <div className="flex items-center justify-between text-xs text-slate-400 mb-4">
-                  <span>{job.posted}</span>
-                  <span>{lang === "sw" ? "Mwisho:" : "Deadline:"} {job.deadline}</span>
+                  <span>{daysAgo(job.postedDays, lang)}</span>
+                  <span>{lang === "sw" ? "Mwisho:" : "Deadline:"} {futureDate(job.deadlineDays)}</span>
                 </div>
                 <button className="w-full bg-primary text-white font-bold py-2.5 rounded-xl flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
                   {t("jobs.apply")} <ArrowRight className="w-4 h-4" />

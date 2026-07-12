@@ -1,6 +1,12 @@
 import { useLang } from "./language";
 import { MapPin, Plane, GraduationCap, ArrowRight, CheckCircle, FileText, Users, Globe } from "lucide-react";
 
+function futureDate(days: number): string {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toLocaleDateString("sw-TZ", { year: "numeric", month: "long", day: "numeric" });
+}
+
 const localPlacements = [
   {
     institution: "Hospitali ya Taifa Muhimbili",
@@ -10,7 +16,7 @@ const localPlacements = [
     description: "Fursa ya kujifunza upasuaji na utunzaji wa wagonjwa wa hatari katika hospitali kubwa zaidi nchini.",
     descriptionEn: "Learn surgery and critical patient care at Tanzania's largest hospital.",
     spots: 10,
-    deadline: "Agosti 30, 2025",
+    deadline: futureDate(60),
   },
   {
     institution: "Hospitali ya Aga Khan",
@@ -20,7 +26,7 @@ const localPlacements = [
     description: "Uzoefu wa huduma za uzazi na watoto katika hospitali ya kibinafsi ya kiwango cha kimataifa.",
     descriptionEn: "Gain maternity and pediatric experience at an international-standard private hospital.",
     spots: 8,
-    deadline: "Septemba 15, 2025",
+    deadline: futureDate(90),
   },
   {
     institution: "Hospitali ya Jakaya Kikwete",
@@ -30,7 +36,7 @@ const localPlacements = [
     description: "Jifunze utunzaji wa wagonjwa wa ndani katika hospitali mpya ya kitaifa.",
     descriptionEn: "Learn internal patient care at Tanzania's newest national hospital.",
     spots: 12,
-    deadline: "Oktoba 1, 2025",
+    deadline: futureDate(120),
   },
 ];
 
