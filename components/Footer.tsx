@@ -35,7 +35,7 @@ export function Footer() {
             <h4 className="font-semibold mb-4">{t("footer.facilities")}</h4>
             <ul className="space-y-2 text-gray-300">
               <li><button onClick={() => navigate("/")} className="hover:text-white transition text-sm">{t("footer.findNurses")}</button></li>
-              <li><span className="text-sm">{t("footer.pricing")}</span></li>
+              <li><button onClick={() => navigate("/pricing")} className="hover:text-white transition text-sm">{t("footer.pricing")}</button></li>
               <li><span className="text-sm">{t("footer.howItWorks")}</span></li>
             </ul>
           </div>

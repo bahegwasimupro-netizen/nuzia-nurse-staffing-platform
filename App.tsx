@@ -9,6 +9,7 @@ import { ClientPortal } from "./components/ClientPortal";
 import { NursePortal } from "./components/NursePortal";
 import { AdminPortal } from "./components/AdminPortal";
 import { AuthPortal } from "./components/AuthPortal";
+import { PricingPage } from "./components/PricingPage";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
               <Route path="/" element={<LandingPage />} />
               <Route path="/elective" element={<ElectivePlacement />} />
               <Route path="/jobs" element={<JobOpportunities />} />
+              <Route path="/pricing" element={<PricingPage />} />
             </Route>
             <Route path="/auth" element={<AuthPortal onClose={() => window.location.href = "/"} />} />
             <Route path="/portal/client" element={<ClientPortal />} />

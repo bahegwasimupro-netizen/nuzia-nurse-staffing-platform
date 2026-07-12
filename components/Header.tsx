@@ -35,6 +35,7 @@ export function Header() {
         <nav className="hidden lg:flex items-center gap-5">
           <button onClick={() => navigate("/jobs")} className="text-sm font-semibold text-slate-600 hover:text-[#1e3a5f] transition">{t("nav.jobs")}</button>
           <button onClick={() => navigate("/elective")} className="text-sm font-semibold text-slate-600 hover:text-[#1e3a5f] transition">{t("nav.elective")}</button>
+          <button onClick={() => navigate("/pricing")} className="text-sm font-semibold text-slate-600 hover:text-[#1e3a5f] transition">{t("nav.pricing")}</button>
           <LanguageToggle />
           <button onClick={() => navigate("/auth")} className="text-sm font-semibold text-slate-600 hover:text-[#1e3a5f] transition">{t("nav.login")}</button>
           <button onClick={() => navigate("/auth")} className="bg-gradient-to-r from-[#1e3a5f] to-[#2563eb] text-white font-bold text-sm px-5 py-2 rounded-xl hover:shadow-lg transition-all">{t("nav.signup")}</button>
@@ -49,6 +50,7 @@ export function Header() {
         <div className="lg:hidden border-t bg-white px-4 py-4 space-y-3">
           <button onClick={() => { navigate("/jobs"); setMobileOpen(false); }} className="block w-full text-left text-sm font-semibold py-2">{t("nav.jobs")}</button>
           <button onClick={() => { navigate("/elective"); setMobileOpen(false); }} className="block w-full text-left text-sm font-semibold py-2">{t("nav.elective")}</button>
+          <button onClick={() => { navigate("/pricing"); setMobileOpen(false); }} className="block w-full text-left text-sm font-semibold py-2">{t("nav.pricing")}</button>
           <div className="flex gap-2 py-2">
             <LanguageToggle />
           </div>

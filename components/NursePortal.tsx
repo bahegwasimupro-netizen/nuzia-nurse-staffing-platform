@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "./auth";
 import { db } from "./firebase";
 import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
-import { CheckCircle, Clock, MapPin, Calendar, LogOut, Heart, Phone, Star } from "lucide-react";
+import { CheckCircle, Clock, MapPin, Calendar, LogOut, Heart, Star } from "lucide-react";
 
 interface Job {
   id: string;

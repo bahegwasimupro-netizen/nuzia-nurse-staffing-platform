@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "./auth";
 import { KeyRound, Mail, User, Phone, Stethoscope, ArrowRight, ArrowLeft } from "lucide-react";
 
-export function AuthPortal({ onClose }: { onClose: () => void }) {
+export function AuthPortal({ onClose: _onClose }: { onClose: () => void }) {
   const { signIn, signUp, loading } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [role, setRole] = useState<"client" | "nurse">("client");
