@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "./auth";
 import { db } from "./firebase";
 import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
-import { CheckCircle, Clock, MapPin, Calendar, LogOut, Heart, Star } from "lucide-react";
+import { CheckCircle, Clock, MapPin, Calendar, LogOut, Heart, Star, Settings } from "lucide-react";
 import { useLang } from "./language";
+import { ProfileModal } from "./ProfileModal";
 
 interface Job {
   id: string;
@@ -30,6 +31,7 @@ export function NursePortal() {
   const { t, lang } = useLang();
   const [assignedJobs, setAssignedJobs] = useState<Job[]>([]);
   const [loadingJobId, setLoadingJobId] = useState<string | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   useEffect(() => {
     if (!userProfile) return;
@@ -99,6 +101,9 @@ export function NursePortal() {
               <p className="font-medium text-sm">{userProfile?.name}</p>
               <p className="text-xs text-emerald-600 font-semibold uppercase">{t("nurse.tnmcCert")}</p>
             </div>
+            <button onClick={() => setIsProfileOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm text-[#1e3a5f] bg-[#1e3a5f]/5 hover:bg-[#1e3a5f]/10 rounded-lg transition">
+              <Settings className="w-4 h-4" />
+            </button>
             <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition">
               <LogOut className="w-4 h-4" /><span>{t("common.logout")}</span>
             </button>
@@ -213,6 +218,8 @@ export function NursePortal() {
           </div>
         </div>
       </main>
+
+      <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
     </div>
   );
 }

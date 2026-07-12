@@ -3,8 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useAuth, UserProfile, getMockUsers } from "./auth";
 import { db } from "./firebase";
 import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
-import { Users, Activity, DollarSign, MapPin, CheckCircle, Clock, RefreshCw, Layers, Award, LogOut, Sparkles } from "lucide-react";
+import { Users, Activity, DollarSign, MapPin, CheckCircle, Clock, RefreshCw, Layers, Award, LogOut, Sparkles, Settings } from "lucide-react";
 import { useLang } from "./language";
+import { ProfileModal } from "./ProfileModal";
 import L from "leaflet";
 
 interface Job {
@@ -36,6 +37,7 @@ export function AdminPortal() {
   const [loading, setLoading] = useState(false);
   const [assigningJobId, setAssigningJobId] = useState<string | null>(null);
   const [selectedNurseId, setSelectedNurseId] = useState<string>("");
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const mapContainer = useRef<HTMLDivElement>(null);
   const adminMap = useRef<L.Map | null>(null);
@@ -153,9 +155,14 @@ export function AdminPortal() {
               <span className="text-xs text-slate-400 block">{t("admin.adminCenter")}</span>
             </div>
           </div>
-          <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition">
-            <LogOut className="w-4 h-4" /><span>{t("common.logout")}</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button onClick={() => setIsProfileOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm text-[#1e3a5f] bg-[#1e3a5f]/5 hover:bg-[#1e3a5f]/10 rounded-lg transition">
+              <Settings className="w-4 h-4" />
+            </button>
+            <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition">
+              <LogOut className="w-4 h-4" /><span>{t("common.logout")}</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -270,6 +277,8 @@ export function AdminPortal() {
           </div>
         </div>
       </main>
+
+      <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
     </div>
   );
 }

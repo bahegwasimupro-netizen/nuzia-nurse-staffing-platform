@@ -4,9 +4,10 @@ import { useAuth, UserProfile } from "./auth";
 import { useLang } from "./language";
 import { db } from "./firebase";
 import { collection, addDoc, query, where, onSnapshot, doc, updateDoc, getDocs } from "firebase/firestore";
-import { MapPin, Calendar, Clock, Clipboard, CheckCircle, CreditCard, Plus, LogOut, ArrowRight, User, Sparkles } from "lucide-react";
+import { MapPin, Calendar, Clock, Clipboard, CheckCircle, CreditCard, Plus, LogOut, ArrowRight, User, Sparkles, Settings } from "lucide-react";
 import L from "leaflet";
 import { findBestNurse } from "./matching";
+import { ProfileModal } from "./ProfileModal";
 
 interface Job {
   id: string;
@@ -50,6 +51,7 @@ export function ClientPortal() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [matchResult, setMatchResult] = useState<{ nurseName: string; auto: boolean } | null>(null);
+  const [isProfileOpen, setIsProfileOpen] = useState(false);
 
   const locale = lang === "sw" ? "sw-TZ" : "en-US";
 
@@ -232,6 +234,9 @@ export function ClientPortal() {
               <p className="font-medium text-sm">{userProfile?.name}</p>
               <p className="text-xs text-emerald-600 font-semibold capitalize">{userProfile?.role} (Mteja)</p>
             </div>
+            <button onClick={() => setIsProfileOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm text-[#1e3a5f] bg-[#1e3a5f]/5 hover:bg-[#1e3a5f]/10 rounded-lg transition">
+              <Settings className="w-4 h-4" />
+            </button>
             <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition">
               <LogOut className="w-4 h-4" /><span>{t("common.logout")}</span>
             </button>
@@ -414,6 +419,8 @@ export function ClientPortal() {
           </div>
         </div>
       )}
+
+      <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
     </div>
   );
 }
