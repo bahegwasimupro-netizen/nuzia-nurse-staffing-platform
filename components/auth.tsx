@@ -24,6 +24,8 @@ export interface UserProfile {
   hourlyRate?: number;
   available?: boolean;
   avatar?: string;
+  tnmcNumber?: string;
+  verificationStatus?: "pending" | "verified" | "rejected";
   createdAt: string;
 }
 
@@ -70,6 +72,8 @@ const getMockUsers = (): UserProfile[] => {
         available: true,
         location: "Upanga, Dar es Salaam",
         locationCoords: "-6.8150, 39.2780",
+        tnmcNumber: "TNMC-2024-001",
+        verificationStatus: "verified",
         avatar: "https://images.unsplash.com/photo-1676552055618-22ec8cde399a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxudXJzZSUyMHBvcnRyYWl0JTIwcHJvZmVzc2lvbmFsJTIwaGVhbHRoY2FyZXxlbnwxfHx8fDE3NTU0MjkwMjN8MA&ixlib=rb-4.1.0&q=80&w=1080",
         createdAt: new Date().toISOString()
       },
@@ -85,6 +89,8 @@ const getMockUsers = (): UserProfile[] => {
         available: true,
         location: "Oysterbay, Dar es Salaam",
         locationCoords: "-6.7925, 39.2880",
+        tnmcNumber: "TNMC-2024-002",
+        verificationStatus: "verified",
         avatar: "https://images.unsplash.com/photo-1753487050317-919a2b26a6ed?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxmZW1hbGUlMjBudXJzZSUyMG1lZGljYWwlMjBwcm9mZXNzaW9uYWx8ZW58MXx8fHwxNzU1MzM5MTUzfDA&ixlib=rb-4.1.0&q=80&w=1080",
         createdAt: new Date().toISOString()
       }

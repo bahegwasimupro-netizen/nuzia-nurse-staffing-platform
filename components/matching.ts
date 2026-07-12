@@ -79,7 +79,9 @@ export function matchNurses(
   availableNurses: UserProfile[],
   activeJobCounts?: Record<string, number>
 ): MatchResult[] {
-  const results: MatchResult[] = availableNurses.map((nurse) => {
+  const results: MatchResult[] = availableNurses
+    .filter((nurse) => nurse.verificationStatus === "verified" || !nurse.verificationStatus)
+    .map((nurse) => {
     const specialtyScore = scoreSpecialty(job.type, nurse.specialty);
     const distanceScore = scoreDistance(job.location, nurse.locationCoords);
     const experienceScore = scoreExperience(nurse.experience);

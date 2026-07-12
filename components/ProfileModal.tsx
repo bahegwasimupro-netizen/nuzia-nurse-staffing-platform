@@ -19,6 +19,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [specialty, setSpecialty] = useState(userProfile?.specialty || "");
   const [experience, setExperience] = useState(userProfile?.experience || "");
   const [hourlyRate, setHourlyRate] = useState(String(userProfile?.hourlyRate || ""));
+  const [tnmcNumber, setTnmcNumber] = useState(userProfile?.tnmcNumber || "");
 
   if (!isOpen || !userProfile) return null;
 
@@ -31,6 +32,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
       data.specialty = specialty;
       data.experience = experience;
       data.hourlyRate = Number(hourlyRate) || 0;
+      data.tnmcNumber = tnmcNumber;
     }
     await updateProfile(data);
     setLoading(false);
@@ -67,6 +69,11 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
             {isNurse && (
               <>
+                <div>
+                  <label className="block text-sm font-semibold mb-1">TNMC Number</label>
+                  <input type="text" value={tnmcNumber} onChange={(e) => setTnmcNumber(e.target.value)} placeholder="e.g. TNMC-2024-001" className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] bg-slate-50 font-mono text-sm" />
+                  <p className="text-[10px] text-slate-400 mt-1">{lang === "sw" ? "Weka namba yako ya usajili wa TNMC" : "Enter your TNMC registration number"}</p>
+                </div>
                 <div>
                   <label className="block text-sm font-semibold mb-1">{t("auth.specialty")}</label>
                   <select value={specialty} onChange={(e) => setSpecialty(e.target.value)} className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] bg-slate-50">

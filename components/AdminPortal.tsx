@@ -29,7 +29,7 @@ const LOCAL_JOBS_KEY = "nuzia_mock_jobs";
 const LOCAL_USERS_KEY = "nuzia_mock_users";
 
 export function AdminPortal() {
-  const { logout, isMock } = useAuth();
+  const { logout, isMock, updateProfile } = useAuth();
   const { t, lang } = useLang();
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
@@ -258,12 +258,38 @@ export function AdminPortal() {
                       <div>
                         <h4 className="font-bold">{nurse.name}</h4>
                         <p className="text-[10px] text-slate-400">{nurse.specialty}</p>
+                        {nurse.tnmcNumber && <p className="text-[10px] text-slate-400 font-mono">TNMC: {nurse.tnmcNumber}</p>}
                         <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">TSh {nurse.hourlyRate?.toLocaleString()}{t("common.perHour")}</p>
                       </div>
                     </div>
-                    <span className={`font-bold px-2 py-0.5 rounded text-[10px] ${nurse.available ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-400"}`}>
-                      {nurse.available ? t("admin.active") : t("admin.busy")}
-                    </span>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className={`font-bold px-2 py-0.5 rounded text-[10px] ${nurse.available ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-400"}`}>
+                        {nurse.available ? t("admin.active") : t("admin.busy")}
+                      </span>
+                      {nurse.verificationStatus === "verified" && (
+                        <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">
+                          {lang === "sw" ? "Imethibitishwa" : "Verified"}
+                        </span>
+                      )}
+                      {nurse.verificationStatus === "pending" && (
+                        <div className="flex gap-1">
+                          <button onClick={async () => { await updateProfile({ ...nurse, verificationStatus: "verified" }); }} className="text-[10px] font-bold text-white bg-emerald-600 px-2 py-0.5 rounded hover:bg-emerald-700 transition">
+                            {lang === "sw" ? "Idhinisha" : "Approve"}
+                          </button>
+                          <button onClick={async () => { await updateProfile({ ...nurse, verificationStatus: "rejected" }); }} className="text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded hover:bg-red-600 transition">
+                            {lang === "sw" ? "Kataa" : "Reject"}
+                          </button>
+                        </div>
+                      )}
+                      {nurse.verificationStatus === "rejected" && (
+                        <span className="text-[10px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-100">
+                          {lang === "sw" ? "Imekataliwa" : "Rejected"}
+                        </span>
+                      )}
+                      {!nurse.verificationStatus && (
+                        <span className="text-[10px] text-slate-400">{lang === "sw" ? "Haijathibitishwa" : "Unverified"}</span>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

@@ -126,7 +126,19 @@ export function NursePortal() {
           <div className="space-y-1 md:border-r border-slate-100 pr-6 md:pl-2">
             <div className="flex justify-between text-sm"><span className="text-slate-500">{t("nurse.salary")}</span><span className="font-bold text-emerald-600">TSh {userProfile?.hourlyRate?.toLocaleString() || "45,000"}{t("common.perHour")}</span></div>
             <div className="flex justify-between text-sm"><span className="text-slate-500">{t("nurse.experienceLabel")}</span><span className="font-medium">{userProfile?.experience || "Miaka 8"}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-slate-500">{t("nurse.tnmcStatus")}</span><span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">{t("nurse.approved")}</span></div>
+            <div className="flex justify-between text-sm">
+              <span className="text-slate-500">{t("nurse.tnmcStatus")}</span>
+              {userProfile?.verificationStatus === "verified" ? (
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">{t("nurse.approved")}</span>
+              ) : userProfile?.verificationStatus === "rejected" ? (
+                <span className="text-xs font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-100">{lang === "sw" ? "Imekataliwa" : "Rejected"}</span>
+              ) : (
+                <span className="text-xs font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">{lang === "sw" ? "Inasubiri" : "Pending"}</span>
+              )}
+            </div>
+            {userProfile?.tnmcNumber && (
+              <div className="flex justify-between text-sm"><span className="text-slate-500">TNMC</span><span className="font-mono text-xs">{userProfile.tnmcNumber}</span></div>
+            )}
           </div>
           <div className="bg-slate-50 p-4 rounded-xl border flex flex-col justify-center items-center">
             <span className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">{t("nurse.availability")}</span>
