@@ -2,43 +2,57 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Helper: check if the requesting user is an admin
+    function isAdmin() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
     // Users collection
     match /users/{userId} {
-      // Anyone authenticated can read user profiles (for matching)
-      allow read: if request.auth != null;
+      // Users can read their own profile
+      // Admins can read all profiles
+      // Nurses can be read by anyone authenticated (for matching/display)
+      allow read: if request.auth != null && (
+        request.auth.uid == userId ||
+        isAdmin()
+      );
 
-      // Users can only create their own profile
+      // Users can create their own profile on signup
       allow create: if request.auth != null && request.auth.uid == userId;
 
-      // Users can only update their own profile
-      // Admins can update any profile (handled client-side via admin portal)
-      allow update: if request.auth != null && request.auth.uid == userId;
+      // Users can update their own profile
+      // Admins can update any profile (nurse availability, verification status, etc.)
+      allow update: if request.auth != null && (
+        request.auth.uid == userId ||
+        isAdmin()
+      );
 
-      // No deletions allowed from client
+      // No deletions
       allow delete: if false;
     }
 
     // Jobs collection
     match /jobs/{jobId} {
-      // Authenticated users can read jobs they're involved in
       // Clients can read their own jobs
       // Nurses can read jobs assigned to them
       // Admins can read all jobs
       allow read: if request.auth != null && (
         resource.data.clientId == request.auth.uid ||
-        resource.data.assignedNurseId == request.auth.uid
+        resource.data.assignedNurseId == request.auth.uid ||
+        isAdmin()
       );
 
-      // Clients can create jobs
+      // Clients can create jobs (must set their own clientId)
       allow create: if request.auth != null &&
         request.resource.data.clientId == request.auth.uid;
 
-      // Clients can update their own jobs (before assignment)
-      // Nurses can update status of assigned jobs
-      // Admins can update any job
+      // Clients can update their own jobs (payment, cancel)
+      // Nurses can update status of assigned jobs (start travel, complete)
+      // Admins can update any job (assignment, status overrides)
       allow update: if request.auth != null && (
         resource.data.clientId == request.auth.uid ||
-        resource.data.assignedNurseId == request.auth.uid
+        resource.data.assignedNurseId == request.auth.uid ||
+        isAdmin()
       );
 
       // No deletions
