@@ -23,10 +23,10 @@ export function Footer() {
             </div>
             <p className="text-gray-300 mb-4">{t("footer.about")}</p>
             <div className="flex gap-4">
-              <Facebook className="w-5 h-5 text-gray-400 hover:text-white cursor-pointer transition" />
-              <Twitter className="w-5 h-5 text-gray-400 hover:text-white cursor-pointer transition" />
-              <Instagram className="w-5 h-5 text-gray-400 hover:text-white cursor-pointer transition" />
-              <Linkedin className="w-5 h-5 text-gray-400 hover:text-white cursor-pointer transition" />
+              <Facebook className="w-5 h-5 text-gray-400 hover:text-white transition" />
+              <Twitter className="w-5 h-5 text-gray-400 hover:text-white transition" />
+              <Instagram className="w-5 h-5 text-gray-400 hover:text-white transition" />
+              <Linkedin className="w-5 h-5 text-gray-400 hover:text-white transition" />
             </div>
           </div>
 
@@ -36,7 +36,7 @@ export function Footer() {
             <ul className="space-y-2 text-gray-300">
               <li><button onClick={() => navigate("/")} className="hover:text-white transition text-sm">{t("footer.findNurses")}</button></li>
               <li><button onClick={() => navigate("/pricing")} className="hover:text-white transition text-sm">{t("footer.pricing")}</button></li>
-              <li><span className="text-sm">{t("footer.howItWorks")}</span></li>
+              <li><button onClick={() => navigate("/")} className="hover:text-white transition text-sm">{t("footer.howItWorks")}</button></li>
             </ul>
           </div>
 
@@ -83,9 +83,9 @@ export function Footer() {
               &copy; {new Date().getFullYear()} NUZIA by Tanzanite Life Care. {t("footer.rights")}
             </p>
             <div className="flex gap-6 text-sm text-gray-400 mt-4 md:mt-0">
-              <a href="#" className="hover:text-white transition">{t("footer.privacy")}</a>
-              <a href="#" className="hover:text-white transition">{t("footer.terms")}</a>
-              <a href="#" className="hover:text-white transition">{t("footer.compliance")}</a>
+              <button onClick={() => navigate("/privacy")} className="hover:text-white transition">{t("footer.privacy")}</button>
+              <button onClick={() => navigate("/terms")} className="hover:text-white transition">{t("footer.terms")}</button>
+              <button onClick={() => navigate("/compliance")} className="hover:text-white transition">{t("footer.compliance")}</button>
             </div>
           </div>
           <div className="text-center mt-4">
