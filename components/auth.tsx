@@ -4,6 +4,8 @@ import {
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
   signOut as fbSignOut,
+  sendPasswordResetEmail,
+  sendEmailVerification,
   User as FirebaseUser
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
@@ -34,6 +36,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string, role: "client" | "nurse" | "admin", phone?: string, specialty?: string) => Promise<UserProfile>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -258,6 +261,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Save profile to Firestore
       await setDoc(doc(db, "users", credential.user.uid), profileData);
       
+      // Send email verification
+      try { await sendEmailVerification(credential.user); } catch (_) { /* non-critical */ }
+      
       setUser(credential.user);
       setUserProfile(profileData);
       setLoading(false);
@@ -321,8 +327,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Reset Password
+  const resetPassword = async (email: string) => {
+    if (isMock) {
+      // In mock mode, just show success
+      return;
+    }
+    await sendPasswordResetEmail(auth, email);
+  };
+
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, isMock, signIn, signUp, logout, updateProfile }}>
+    <AuthContext.Provider value={{ user, userProfile, loading, isMock, signIn, signUp, logout, updateProfile, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );

@@ -5,8 +5,8 @@ import { useLang } from "./language";
 import { KeyRound, Mail, User, Phone, Stethoscope, ArrowRight, ArrowLeft } from "lucide-react";
 
 export function AuthPortal({ onClose: _onClose }: { onClose: () => void }) {
-  const { signIn, signUp, loading } = useAuth();
-  const { t } = useLang();
+  const { signIn, signUp, loading, resetPassword } = useAuth();
+  const { t, lang } = useLang();
   const [isLogin, setIsLogin] = useState(true);
   const [role, setRole] = useState<"client" | "nurse">("client");
   const navigate = useNavigate();
@@ -17,6 +17,33 @@ export function AuthPortal({ onClose: _onClose }: { onClose: () => void }) {
   const [phone, setPhone] = useState("");
   const [specialty, setSpecialty] = useState("services.general");
   const [errorMsg, setErrorMsg] = useState("");
+  const [successMsg, setSuccessMsg] = useState("");
+  const [showForgot, setShowForgot] = useState(false);
+
+  const translateError = (code: string): string => {
+    const errors: Record<string, string> = {
+      "auth/invalid-email": lang === "sw" ? "Barua pepe si sahihi" : "Invalid email address",
+      "auth/user-disabled": lang === "sw" ? "Akaunti imezimwa" : "Account has been disabled",
+      "auth/user-not-found": lang === "sw" ? "Mtumiaji hakupatikana" : "No account found with this email",
+      "auth/wrong-password": lang === "sw" ? "Neno la siri ni baya" : "Incorrect password",
+      "auth/email-already-in-use": lang === "sw" ? "Barua pepe tayari inatumika" : "Email already in use",
+      "auth/weak-password": lang === "sw" ? "Neno la siri ni dhaifu. Weka herufi 6 au zaidi" : "Password too weak. Use 6+ characters",
+      "auth/too-many-requests": lang === "sw" ? "Majaribio mengi sana. Jaribu tena baadaye" : "Too many attempts. Try again later",
+      "auth/invalid-credential": lang === "sw" ? "Barua pepe au neno la siri ni baya" : "Invalid email or password",
+    };
+    return errors[code] || (lang === "sw" ? "Hitilafu imetokea. Tafadhali jaribu tena." : "An error occurred. Please try again.");
+  };
+
+  const handleForgotPassword = async () => {
+    if (!email) { setErrorMsg(lang === "sw" ? "Weka barua pepe kwanza" : "Enter your email first"); return; }
+    try {
+      await resetPassword(email);
+      setSuccessMsg(lang === "sw" ? "Barua pepe ya kusawazisha imetumwa!" : "Password reset email sent!");
+      setShowForgot(false);
+    } catch (err: any) {
+      setErrorMsg(translateError(err.code));
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,9 +72,18 @@ export function AuthPortal({ onClose: _onClose }: { onClose: () => void }) {
       }
     } catch (err: any) {
       console.error(err);
-      setErrorMsg(err.message || t("auth.errorDefault"));
+      setErrorMsg(translateError(err.code) || err.message || t("auth.errorDefault"));
     }
   };
+
+  const passwordStrength = (pw: string): { label: string; color: string; width: string } => {
+    if (pw.length === 0) return { label: "", color: "bg-slate-200", width: "w-0" };
+    if (pw.length < 6) return { label: lang === "sw" ? "Dhaifu" : "Weak", color: "bg-red-500", width: "w-1/4" };
+    if (pw.length < 10) return { label: lang === "sw" ? "Wastani" : "Fair", color: "bg-amber-500", width: "w-2/4" };
+    if (/[A-Z]/.test(pw) && /[0-9]/.test(pw) && pw.length >= 10) return { label: lang === "sw" ? "Imara" : "Strong", color: "bg-emerald-500", width: "w-full" };
+    return { label: lang === "sw" ? "Wastani" : "Fair", color: "bg-amber-500", width: "w-2/4" };
+  };
+  const strength = passwordStrength(password);
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-4">
@@ -92,6 +128,12 @@ export function AuthPortal({ onClose: _onClose }: { onClose: () => void }) {
         {errorMsg && (
           <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-xl text-xs font-semibold text-center">
             {errorMsg}
+          </div>
+        )}
+
+        {successMsg && (
+          <div className="mb-4 bg-emerald-50 border border-emerald-200 text-emerald-700 px-4 py-2 rounded-xl text-xs font-semibold text-center">
+            {successMsg}
           </div>
         )}
 
@@ -158,8 +200,21 @@ export function AuthPortal({ onClose: _onClose }: { onClose: () => void }) {
             <label className="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1 font-semibold">{t("auth.password")}</label>
             <div className="relative">
               <KeyRound className="absolute left-3 top-3.5 text-slate-400 w-4 h-4" />
-              <input type="password" required placeholder="******" value={password} onChange={(e) => setPassword(e.target.value)} className="w-full pl-10 pr-4 py-3 border rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] transition text-sm" />
+              <input type="password" required placeholder="******" value={password} onChange={(e) => { setPassword(e.target.value); setErrorMsg(""); }} className="w-full pl-10 pr-4 py-3 border rounded-xl bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] transition text-sm" />
             </div>
+            {!isLogin && password.length > 0 && (
+              <div className="mt-1.5">
+                <div className="h-1 bg-slate-200 rounded-full overflow-hidden">
+                  <div className={`h-full rounded-full transition-all ${strength.color} ${strength.width}`}></div>
+                </div>
+                <p className="text-[10px] text-slate-400 mt-0.5">{strength.label}</p>
+              </div>
+            )}
+            {isLogin && (
+              <button type="button" onClick={() => { setShowForgot(true); setErrorMsg(""); setSuccessMsg(""); }} className="text-[11px] text-[#1e3a5f] hover:underline mt-1 font-medium">
+                {lang === "sw" ? "Umesahau neno la siri?" : "Forgot password?"}
+              </button>
+            )}
           </div>
 
           <button type="submit" disabled={loading} className="w-full bg-gradient-to-r from-[#1e3a5f] to-[#2563eb] hover:from-[#162d4a] hover:to-[#1d4ed8] text-white font-bold py-3.5 rounded-xl shadow-lg transition flex items-center justify-center gap-2 mt-6 active:scale-98">
@@ -178,6 +233,20 @@ export function AuthPortal({ onClose: _onClose }: { onClose: () => void }) {
           </div>
         )}
       </div>
+
+      {showForgot && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-sm">
+            <h3 className="text-lg font-bold mb-2">{lang === "sw" ? "Weka upya neno la siri" : "Reset Password"}</h3>
+            <p className="text-sm text-slate-500 mb-4">{lang === "sw" ? "Tutakutumia barua pepe ya kusawazisha neno la siri." : "We'll send you an email to reset your password."}</p>
+            <input type="email" placeholder="email@example.com" value={email} onChange={(e) => setEmail(e.target.value)} className="w-full border rounded-xl p-3 mb-4 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] bg-slate-50 text-sm" />
+            <div className="flex gap-3">
+              <button onClick={() => setShowForgot(false)} className="w-1/2 bg-slate-100 hover:bg-slate-200 font-bold py-2.5 rounded-xl text-sm transition">{lang === "sw" ? "Ghairi" : "Cancel"}</button>
+              <button onClick={handleForgotPassword} className="w-1/2 bg-[#1e3a5f] text-white font-bold py-2.5 rounded-xl text-sm transition">{lang === "sw" ? "Tuma" : "Send"}</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
