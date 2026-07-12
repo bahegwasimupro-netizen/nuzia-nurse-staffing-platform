@@ -15,6 +15,7 @@ import { findOrCreateChat } from "./chat";
 import { ChatPanel } from "./ChatPanel";
 import { ReviewModal } from "./ReviewModal";
 import { subscribeToJobReview } from "./reviews";
+import { sendJobAssignedEmail, sendPaymentConfirmationEmail } from "./emailService";
 
 interface Job {
   id: string;
@@ -224,6 +225,7 @@ export function ClientPortal() {
           lang === "sw" ? `${best.name} amepangwa kwa ajili yako` : `${best.name} has been assigned to your job`,
           "job_assigned"
         );
+        sendJobAssignedEmail(best.phone || "", best.name, userProfile.name, jobType, locationName, dateTime);
         setTimeout(() => setMatchResult(null), 5000);
       }
     } catch (e) {
@@ -275,6 +277,7 @@ export function ClientPortal() {
           await updateDoc(doc(db, "jobs", payingJob.id), { paymentStatus: "Paid" });
         }
         addNotification(lang === "sw" ? "Malipo Yamekamilika" : "Payment Complete", `${formatAmount(amount)} ${lang === "sw" ? "ymelipwa kupitia" : "paid via"} ${paymentMethod === "mpesa" ? "M-Pesa" : "Airtel Money"}`, "info");
+        sendPaymentConfirmationEmail(userProfile.email || "", userProfile.name, formatAmount(amount), payingJob.assignedNurseName || "Nurse", payingJob.type);
         setTimeout(() => { setPayingJob(null); setPaymentStep("idle"); setPhoneNumber(""); }, 3000);
       } else {
         setPaymentStep("failed");

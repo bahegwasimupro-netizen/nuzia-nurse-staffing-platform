@@ -10,6 +10,7 @@ import { NotificationBell } from "./NotificationBell";
 import { useNotifications } from "./notifications";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { JobHistory } from "./JobHistory";
+import { sendVerificationEmail } from "./emailService";
 import L from "leaflet";
 
 interface Job {
@@ -313,10 +314,10 @@ export function AdminPortal() {
                       )}
                       {nurse.verificationStatus === "pending" && (
                         <div className="flex gap-1">
-                          <button onClick={async () => { await updateProfile({ ...nurse, verificationStatus: "verified" }); addNotification(lang === "sw" ? "Mhudumu Amethibitishwa" : "Nurse Verified", `${nurse.name} ${lang === "sw" ? "amethibitishwa" : "has been verified"}`, "verification_approved"); }} className="text-[10px] font-bold text-white bg-emerald-600 px-2 py-0.5 rounded hover:bg-emerald-700 transition">
+                          <button onClick={async () => { await updateProfile({ ...nurse, verificationStatus: "verified" }); addNotification(lang === "sw" ? "Mhudumu Amethibitishwa" : "Nurse Verified", `${nurse.name} ${lang === "sw" ? "amethibitishwa" : "has been verified"}`, "verification_approved"); sendVerificationEmail(nurse.phone || "", nurse.name, "approved"); }} className="text-[10px] font-bold text-white bg-emerald-600 px-2 py-0.5 rounded hover:bg-emerald-700 transition">
                             {lang === "sw" ? "Idhinisha" : "Approve"}
                           </button>
-                          <button onClick={async () => { await updateProfile({ ...nurse, verificationStatus: "rejected" }); addNotification(lang === "sw" ? "Mhudumu Umekataliwa" : "Nurse Rejected", `${nurse.name} ${lang === "sw" ? "umekataliwa" : "has been rejected"}`, "verification_rejected"); }} className="text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded hover:bg-red-600 transition">
+                          <button onClick={async () => { await updateProfile({ ...nurse, verificationStatus: "rejected" }); addNotification(lang === "sw" ? "Mhudumu Umekataliwa" : "Nurse Rejected", `${nurse.name} ${lang === "sw" ? "umekataliwa" : "has been rejected"}`, "verification_rejected"); sendVerificationEmail(nurse.phone || "", nurse.name, "rejected"); }} className="text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded hover:bg-red-600 transition">
                             {lang === "sw" ? "Kataa" : "Reject"}
                           </button>
                         </div>
