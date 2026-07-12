@@ -10,6 +10,7 @@ import { NotificationBell } from "./NotificationBell";
 import { uploadImage } from "./upload";
 import { findOrCreateChat } from "./chat";
 import { ChatPanel } from "./ChatPanel";
+import { AvailabilitySchedule } from "./AvailabilitySchedule";
 
 interface Job {
   id: string;
@@ -199,6 +200,10 @@ export function NursePortal() {
             </div>
           </div>
         )}
+
+        <div className="mt-6">
+          <AvailabilitySchedule />
+        </div>
 
         <div className="space-y-6 mt-6">
           <div>
