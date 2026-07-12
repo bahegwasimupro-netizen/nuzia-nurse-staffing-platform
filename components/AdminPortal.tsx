@@ -9,6 +9,7 @@ import { ProfileModal } from "./ProfileModal";
 import { NotificationBell } from "./NotificationBell";
 import { useNotifications } from "./notifications";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
+import { JobHistory } from "./JobHistory";
 import L from "leaflet";
 
 interface Job {
@@ -213,6 +214,8 @@ export function AdminPortal() {
           avgRating={4.8}
           topNurses={topNurses}
         />
+
+        <JobHistory jobs={jobs.map(j => ({ ...j, createdAt: j.createdAt || new Date().toISOString() }))} />
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white p-6 rounded-2xl border shadow-sm flex items-center gap-4">
