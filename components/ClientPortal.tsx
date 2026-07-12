@@ -8,6 +8,8 @@ import { MapPin, Calendar, Clock, Clipboard, CheckCircle, CreditCard, Plus, LogO
 import L from "leaflet";
 import { findBestNurse } from "./matching";
 import { ProfileModal } from "./ProfileModal";
+import { NotificationBell } from "./NotificationBell";
+import { useNotifications } from "./notifications";
 
 interface Job {
   id: string;
@@ -32,6 +34,7 @@ export function ClientPortal() {
   const { userProfile, logout, isMock } = useAuth();
   const { t, lang } = useLang();
   const navigate = useNavigate();
+  const { addNotification } = useNotifications();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -190,6 +193,11 @@ export function ClientPortal() {
           await updateDoc(doc(db, "users", best.uid), { available: false });
         }
         setMatchResult({ nurseName: best.name, auto: true });
+        addNotification(
+          lang === "sw" ? "Mhudumu Amepangwa" : "Nurse Assigned",
+          lang === "sw" ? `${best.name} amepangwa kwa ajili yako` : `${best.name} has been assigned to your job`,
+          "job_assigned"
+        );
         setTimeout(() => setMatchResult(null), 5000);
       }
     } catch (e) {
@@ -234,6 +242,7 @@ export function ClientPortal() {
               <p className="font-medium text-sm">{userProfile?.name}</p>
               <p className="text-xs text-emerald-600 font-semibold capitalize">{userProfile?.role} (Mteja)</p>
             </div>
+            <NotificationBell />
             <button onClick={() => setIsProfileOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm text-[#1e3a5f] bg-[#1e3a5f]/5 hover:bg-[#1e3a5f]/10 rounded-lg transition">
               <Settings className="w-4 h-4" />
             </button>

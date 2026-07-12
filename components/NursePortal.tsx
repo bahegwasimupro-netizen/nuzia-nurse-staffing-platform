@@ -6,6 +6,7 @@ import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/f
 import { CheckCircle, Clock, MapPin, Calendar, LogOut, Heart, Star, Settings, Upload } from "lucide-react";
 import { useLang } from "./language";
 import { ProfileModal } from "./ProfileModal";
+import { NotificationBell } from "./NotificationBell";
 import { uploadImage } from "./upload";
 
 interface Job {
@@ -125,6 +126,7 @@ export function NursePortal() {
               <p className="font-medium text-sm">{userProfile?.name}</p>
               <p className="text-xs text-emerald-600 font-semibold uppercase">{t("nurse.tnmcCert")}</p>
             </div>
+            <NotificationBell />
             <button onClick={() => setIsProfileOpen(true)} className="flex items-center gap-2 px-3 py-2 text-sm text-[#1e3a5f] bg-[#1e3a5f]/5 hover:bg-[#1e3a5f]/10 rounded-lg transition">
               <Settings className="w-4 h-4" />
             </button>
