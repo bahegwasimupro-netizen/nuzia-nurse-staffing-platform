@@ -4,12 +4,13 @@ import { useAuth, UserProfile } from "./auth";
 import { useLang } from "./language";
 import { db } from "./firebase";
 import { collection, addDoc, query, where, onSnapshot, doc, updateDoc, getDocs } from "firebase/firestore";
-import { MapPin, Calendar, Clock, Clipboard, CheckCircle, CreditCard, Plus, LogOut, ArrowRight, User, Sparkles, Settings } from "lucide-react";
+import { MapPin, Calendar, Clock, Clipboard, CheckCircle, CreditCard, Plus, LogOut, ArrowRight, User, Sparkles, Settings, Phone, Shield, Loader2, AlertCircle } from "lucide-react";
 import L from "leaflet";
 import { findBestNurse } from "./matching";
 import { ProfileModal } from "./ProfileModal";
 import { NotificationBell } from "./NotificationBell";
 import { useNotifications } from "./notifications";
+import { initiateStkPush, pollPaymentStatus, calculateAmount, formatAmount } from "./payments";
 
 interface Job {
   id: string;
@@ -53,6 +54,8 @@ export function ClientPortal() {
   const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "airtel" | "card">("mpesa");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentStep, setPaymentStep] = useState<"idle" | "sending" | "waiting" | "success" | "failed">("idle");
+  const [paymentMessage, setPaymentMessage] = useState("");
   const [matchResult, setMatchResult] = useState<{ nurseName: string; auto: boolean } | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -209,17 +212,57 @@ export function ClientPortal() {
 
   const handlePayment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!payingJob) return;
+    if (!payingJob || !userProfile) return;
+    const amount = calculateAmount(payingJob.type);
+
+    if (paymentMethod === "card") {
+      setIsProcessingPayment(true);
+      setTimeout(async () => {
+        if (isMock) {
+          const current = localStorage.getItem(LOCAL_JOBS_KEY);
+          if (current) { const all = JSON.parse(current); const idx = all.findIndex((j: Job) => j.id === payingJob.id); if (idx !== -1) { all[idx].paymentStatus = "Paid"; localStorage.setItem(LOCAL_JOBS_KEY, JSON.stringify(all)); } }
+        } else {
+          try { await updateDoc(doc(db, "jobs", payingJob.id), { paymentStatus: "Paid" }); } catch (err) { console.error(err); }
+        }
+        setIsProcessingPayment(false); setPayingJob(null); setPhoneNumber(""); addNotification(lang === "sw" ? "Malipo Yamekamilika" : "Payment Complete", `${formatAmount(amount)} ${lang === "sw" ? "ymelipwa" : "paid"}`, "info");
+        alert(t("client.paymentComplete"));
+      }, 2000);
+      return;
+    }
+
+    // M-Pesa / Airtel Money STK Push flow
+    setPaymentStep("sending");
+    setPaymentMessage(lang === "sw" ? "Inatuma ombi la STK Push..." : "Sending STK Push request...");
     setIsProcessingPayment(true);
-    setTimeout(async () => {
-      if (isMock) {
-        const current = localStorage.getItem(LOCAL_JOBS_KEY);
-        if (current) { const all = JSON.parse(current); const idx = all.findIndex((j: Job) => j.id === payingJob.id); if (idx !== -1) { all[idx].paymentStatus = "Paid"; localStorage.setItem(LOCAL_JOBS_KEY, JSON.stringify(all)); } }
+
+    try {
+      const result = await initiateStkPush(phoneNumber, amount, payingJob.id, userProfile.uid, isMock);
+      setPaymentStep("waiting");
+      setPaymentMessage(lang === "sw" ? "Tafadhali weka PIN yako ya M-Pesa kwenye simu..." : "Please enter your M-Pesa PIN on your phone...");
+
+      const status = await pollPaymentStatus(result.checkoutRequestId, isMock);
+
+      if (status === "completed") {
+        setPaymentStep("success");
+        setPaymentMessage(lang === "sw" ? "Malipo yamekamilika!" : "Payment successful!");
+        if (isMock) {
+          const current = localStorage.getItem(LOCAL_JOBS_KEY);
+          if (current) { const all = JSON.parse(current); const idx = all.findIndex((j: Job) => j.id === payingJob.id); if (idx !== -1) { all[idx].paymentStatus = "Paid"; localStorage.setItem(LOCAL_JOBS_KEY, JSON.stringify(all)); } }
+        } else {
+          await updateDoc(doc(db, "jobs", payingJob.id), { paymentStatus: "Paid" });
+        }
+        addNotification(lang === "sw" ? "Malipo Yamekamilika" : "Payment Complete", `${formatAmount(amount)} ${lang === "sw" ? "ymelipwa kupitia" : "paid via"} ${paymentMethod === "mpesa" ? "M-Pesa" : "Airtel Money"}`, "info");
+        setTimeout(() => { setPayingJob(null); setPaymentStep("idle"); setPhoneNumber(""); }, 3000);
       } else {
-        try { await updateDoc(doc(db, "jobs", payingJob.id), { paymentStatus: "Paid" }); } catch (e) { console.error("Firestore update failed", e); }
+        setPaymentStep("failed");
+        setPaymentMessage(lang === "sw" ? "Malipo yameshindikana. Tafadhali jaribu tena." : "Payment failed. Please try again.");
       }
-      setIsProcessingPayment(false); setPayingJob(null); setPhoneNumber(""); alert(t("client.paymentComplete"));
-    }, 2000);
+    } catch {
+      setPaymentStep("failed");
+      setPaymentMessage(lang === "sw" ? "Hitilafu ya mtandao. Tafadhali jaribu tena." : "Network error. Please try again.");
+    } finally {
+      setIsProcessingPayment(false);
+    }
   };
 
   const handleLogout = () => { logout(); navigate("/"); };
@@ -390,41 +433,79 @@ export function ClientPortal() {
           <div className="bg-white rounded-2xl p-6 shadow-xl w-full max-w-md">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold">{t("client.payTitle")}</h2>
-              <button onClick={() => setPayingJob(null)} className="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+              <button onClick={() => { if (paymentStep !== "sending" && paymentStep !== "waiting") { setPayingJob(null); setPaymentStep("idle"); setPhoneNumber(""); } }} className="text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
             </div>
-            <div className="bg-slate-50 p-4 rounded-xl border mb-6 text-sm space-y-2">
-              <div className="flex justify-between"><span>{t("client.serviceTypeLabel")}</span><span className="font-semibold">{payingJob.type}</span></div>
-              <div className="flex justify-between"><span>{t("client.locationLabel")}</span><span className="font-semibold">{payingJob.locationName}</span></div>
-              <div className="flex justify-between"><span>{t("client.nurseLabel")}</span><span className="font-semibold">{payingJob.assignedNurseName}</span></div>
-              <div className="border-t pt-2 flex justify-between font-bold"><span>{t("client.amountLabel")}</span><span className="text-emerald-600">TSh {payingJob.type.includes("ICU") ? "75,000" : "45,000"}/saa</span></div>
-            </div>
-            <form onSubmit={handlePayment} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold mb-2">{t("client.choosePayment")}</label>
-                <div className="grid grid-cols-3 gap-3">
-                  <button type="button" onClick={() => setPaymentMethod("mpesa")} className={`py-2 px-3 border rounded-lg text-xs font-bold transition-all ${paymentMethod === "mpesa" ? "border-emerald-600 bg-emerald-50 text-emerald-800" : "bg-slate-50"}`}>M-Pesa</button>
-                  <button type="button" onClick={() => setPaymentMethod("airtel")} className={`py-2 px-3 border rounded-lg text-xs font-bold transition-all ${paymentMethod === "airtel" ? "border-red-600 bg-red-50 text-red-800" : "bg-slate-50"}`}>Airtel Money</button>
-                  <button type="button" onClick={() => setPaymentMethod("card")} className={`py-2 px-3 border rounded-lg text-xs font-bold transition-all ${paymentMethod === "card" ? "border-[#1e3a5f] bg-[#1e3a5f]/5 text-[#1e3a5f]" : "bg-slate-50"}`}>Kadi</button>
-                </div>
+
+            {paymentStep === "success" ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4"><CheckCircle className="w-8 h-8 text-emerald-600" /></div>
+                <h3 className="text-lg font-bold text-emerald-700 mb-2">{lang === "sw" ? "Malipo Yamekamilika!" : "Payment Successful!"}</h3>
+                <p className="text-sm text-slate-500">{formatAmount(calculateAmount(payingJob.type))} {lang === "sw" ? "ymelipwa kupitia" : "paid via"} {paymentMethod === "mpesa" ? "M-Pesa" : "Airtel Money"}</p>
               </div>
-              {paymentMethod !== "card" ? (
-                <div>
-                  <label className="block text-sm font-semibold mb-1">{t("client.phoneNumber")}</label>
-                  <input type="tel" required value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="0754 123 456" className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50" />
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div><label className="block text-sm font-semibold mb-1">{t("client.cardNumber")}</label><input type="text" required placeholder="4000 1234 5678 9010" className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] bg-slate-50 font-mono text-sm" /></div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><label className="block text-sm font-semibold mb-1">MM/YY</label><input type="text" required placeholder="12/28" className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] bg-slate-50 font-mono text-sm text-center" /></div>
-                    <div><label className="block text-sm font-semibold mb-1">CVV</label><input type="password" maxLength={3} required placeholder="123" className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] bg-slate-50 font-mono text-sm text-center" /></div>
+            ) : paymentStep === "failed" ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4"><AlertCircle className="w-8 h-8 text-red-600" /></div>
+                <h3 className="text-lg font-bold text-red-700 mb-2">{lang === "sw" ? "Malipo Yameshindikana" : "Payment Failed"}</h3>
+                <p className="text-sm text-slate-500 mb-4">{paymentMessage}</p>
+                <button onClick={() => setPaymentStep("idle")} className="bg-slate-100 hover:bg-slate-200 font-bold py-2 px-6 rounded-xl transition text-sm">{lang === "sw" ? "Jaribu Tena" : "Try Again"}</button>
+              </div>
+            ) : paymentStep === "sending" || paymentStep === "waiting" ? (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4"><Loader2 className="w-8 h-8 text-emerald-600 animate-spin" /></div>
+                <h3 className="text-lg font-bold mb-2">{paymentStep === "sending" ? (lang === "sw" ? "Inatuma..." : "Sending...") : (lang === "sw" ? "Inasubiri..." : "Waiting...")}</h3>
+                <p className="text-sm text-slate-500 mb-3">{paymentMessage}</p>
+                <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 flex items-start gap-3">
+                  <Phone className="w-5 h-5 text-emerald-600 mt-0.5 shrink-0" />
+                  <div className="text-xs text-emerald-800 text-left">
+                    <p className="font-bold mb-1">{lang === "sw" ? "Hatua ya 1: Angalia simu yako" : "Step 1: Check your phone"}</p>
+                    <p>{lang === "sw" ? "Utapokea STK Push. Weka PIN yako ya M-Pesa ili kukamilisha malipo." : "You'll receive an STK Push. Enter your M-Pesa PIN to complete payment."}</p>
                   </div>
                 </div>
-              )}
-              <button type="submit" disabled={isProcessingPayment} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 mt-4">
-                {isProcessingPayment ? t("client.processing") : t("client.payNowBtn")}
-              </button>
-            </form>
+              </div>
+            ) : (
+              <>
+                <div className="bg-slate-50 p-4 rounded-xl border mb-6 text-sm space-y-2">
+                  <div className="flex justify-between"><span>{t("client.serviceTypeLabel")}</span><span className="font-semibold">{payingJob.type}</span></div>
+                  <div className="flex justify-between"><span>{t("client.locationLabel")}</span><span className="font-semibold">{payingJob.locationName}</span></div>
+                  <div className="flex justify-between"><span>{t("client.nurseLabel")}</span><span className="font-semibold">{payingJob.assignedNurseName}</span></div>
+                  <div className="border-t pt-2 flex justify-between font-bold text-base"><span>{t("client.amountLabel")}</span><span className="text-emerald-600">{formatAmount(calculateAmount(payingJob.type))}/saa</span></div>
+                </div>
+                <form onSubmit={handlePayment} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2">{t("client.choosePayment")}</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <button type="button" onClick={() => setPaymentMethod("mpesa")} className={`py-2 px-3 border rounded-lg text-xs font-bold transition-all ${paymentMethod === "mpesa" ? "border-emerald-600 bg-emerald-50 text-emerald-800" : "bg-slate-50 hover:bg-slate-100"}`}>M-Pesa</button>
+                      <button type="button" onClick={() => setPaymentMethod("airtel")} className={`py-2 px-3 border rounded-lg text-xs font-bold transition-all ${paymentMethod === "airtel" ? "border-red-600 bg-red-50 text-red-800" : "bg-slate-50 hover:bg-slate-100"}`}>Airtel Money</button>
+                      <button type="button" onClick={() => setPaymentMethod("card")} className={`py-2 px-3 border rounded-lg text-xs font-bold transition-all ${paymentMethod === "card" ? "border-[#1e3a5f] bg-[#1e3a5f]/5 text-[#1e3a5f]" : "bg-slate-50 hover:bg-slate-100"}`}>Kadi</button>
+                    </div>
+                  </div>
+                  {paymentMethod !== "card" ? (
+                    <div>
+                      <label className="block text-sm font-semibold mb-1">{t("client.phoneNumber")}</label>
+                      <div className="relative">
+                        <Phone className="absolute left-3 top-3.5 w-4 h-4 text-slate-400" />
+                        <input type="tel" required value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="0754 123 456" className="w-full border rounded-xl p-3 pl-10 focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-slate-50" />
+                      </div>
+                      <div className="flex items-start gap-2 mt-2 bg-emerald-50 border border-emerald-100 rounded-lg p-2.5">
+                        <Shield className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
+                        <p className="text-[10px] text-emerald-700">{lang === "sw" ? "STK Push itatumwa kwenye nambari hii. Weka PIN yako ya M-Pesa ili kukamilisha malipo." : "STK Push will be sent to this number. Enter your M-Pesa PIN to complete."}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div><label className="block text-sm font-semibold mb-1">{t("client.cardNumber")}</label><input type="text" required placeholder="4000 1234 5678 9010" className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] bg-slate-50 font-mono text-sm" /></div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div><label className="block text-sm font-semibold mb-1">MM/YY</label><input type="text" required placeholder="12/28" className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] bg-slate-50 font-mono text-sm text-center" /></div>
+                        <div><label className="block text-sm font-semibold mb-1">CVV</label><input type="password" maxLength={3} required placeholder="123" className="w-full border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] bg-slate-50 font-mono text-sm text-center" /></div>
+                      </div>
+                    </div>
+                  )}
+                  <button type="submit" disabled={isProcessingPayment} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-md transition flex items-center justify-center gap-2 mt-4">
+                    <CreditCard className="w-5 h-5" /><span>{isProcessingPayment ? t("client.processing") : t("client.payNowBtn")}</span>
+                  </button>
+                </form>
+              </>
+            )}
           </div>
         </div>
       )}
