@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "./auth";
 import { db } from "./firebase";
 import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
-import { CheckCircle, Clock, MapPin, Calendar, LogOut, Heart, Star, Settings, Upload } from "lucide-react";
+import { CheckCircle, Clock, MapPin, Calendar, LogOut, Heart, Star, Settings, Upload, MessageCircle } from "lucide-react";
 import { useLang } from "./language";
 import { ProfileModal } from "./ProfileModal";
 import { NotificationBell } from "./NotificationBell";
 import { uploadImage } from "./upload";
+import { findOrCreateChat } from "./chat";
+import { ChatPanel } from "./ChatPanel";
 
 interface Job {
   id: string;
@@ -37,6 +39,8 @@ export function NursePortal() {
   const [uploadingLicense, setUploadingLicense] = useState(false);
   const [licenseProgress, setLicenseProgress] = useState(0);
   const licenseRef = useRef<HTMLInputElement>(null);
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [activeChatName, setActiveChatName] = useState("");
 
   const handleLicenseUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -226,6 +230,14 @@ export function NursePortal() {
                       <h5 className="font-semibold text-xs text-slate-400 uppercase tracking-wider">{t("nurse.clientLocation")}</h5>
                       <p className="font-bold">{job.clientName}</p>
                       <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-slate-400" /><span>{job.locationName}</span></div>
+                      <button onClick={async () => {
+                        if (!userProfile) return;
+                        const chatId = await findOrCreateChat(job.clientId, job.clientName, userProfile.uid, userProfile.name, job.id, isMock);
+                        setActiveChatId(chatId);
+                        setActiveChatName(job.clientName);
+                      }} className="flex items-center gap-1.5 text-xs font-semibold text-[#1e3a5f] hover:text-[#2563eb] transition mt-2">
+                        <MessageCircle className="w-3.5 h-3.5" />{lang === "sw" ? "Zungumza na Mteja" : "Chat with Client"}
+                      </button>
                     </div>
                     <div className="space-y-2.5">
                       <h5 className="font-semibold text-xs text-slate-400 uppercase tracking-wider">{t("nurse.timeLabel")}</h5>
@@ -277,6 +289,7 @@ export function NursePortal() {
       </main>
 
       <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+      {activeChatId && <ChatPanel chatId={activeChatId} otherName={activeChatName} isOpen={true} onClose={() => setActiveChatId(null)} />}
     </div>
   );
 }

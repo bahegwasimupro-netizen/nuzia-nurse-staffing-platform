@@ -4,13 +4,15 @@ import { useAuth, UserProfile } from "./auth";
 import { useLang } from "./language";
 import { db } from "./firebase";
 import { collection, addDoc, query, where, onSnapshot, doc, updateDoc, getDocs } from "firebase/firestore";
-import { MapPin, Calendar, Clock, Clipboard, CheckCircle, CreditCard, Plus, LogOut, ArrowRight, User, Sparkles, Settings, Phone, Shield, Loader2, AlertCircle } from "lucide-react";
+import { MapPin, Calendar, Clock, Clipboard, CheckCircle, CreditCard, Plus, LogOut, ArrowRight, User, Sparkles, Settings, Phone, Shield, Loader2, AlertCircle, MessageCircle } from "lucide-react";
 import L from "leaflet";
 import { findBestNurse } from "./matching";
 import { ProfileModal } from "./ProfileModal";
 import { NotificationBell } from "./NotificationBell";
 import { useNotifications } from "./notifications";
 import { initiateStkPush, pollPaymentStatus, calculateAmount, formatAmount } from "./payments";
+import { findOrCreateChat } from "./chat";
+import { ChatPanel } from "./ChatPanel";
 
 interface Job {
   id: string;
@@ -56,6 +58,8 @@ export function ClientPortal() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [paymentStep, setPaymentStep] = useState<"idle" | "sending" | "waiting" | "success" | "failed">("idle");
   const [paymentMessage, setPaymentMessage] = useState("");
+  const [activeChatId, setActiveChatId] = useState<string | null>(null);
+  const [activeChatName, setActiveChatName] = useState("");
   const [matchResult, setMatchResult] = useState<{ nurseName: string; auto: boolean } | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -360,6 +364,16 @@ export function ClientPortal() {
                         <p className="font-bold flex items-center gap-1.5"><User className="w-4 h-4 text-[#1e3a5f]" />{job.assignedNurseName}</p>
                         <p className="text-xs text-slate-500">{job.assignedNursePhone}</p>
                         <div className="mt-2 text-xs flex items-center gap-1 text-emerald-600 font-semibold"><CheckCircle className="w-3.5 h-3.5" /><span>{t("client.certified")}</span></div>
+                        {job.assignedNurseId && job.status !== "Pending Assignment" && (
+                          <button onClick={async () => {
+                            if (!userProfile) return;
+                            const chatId = await findOrCreateChat(userProfile.uid, userProfile.name, job.assignedNurseId!, job.assignedNurseName || "Nurse", job.id, isMock);
+                            setActiveChatId(chatId);
+                            setActiveChatName(job.assignedNurseName || "Nurse");
+                          }} className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-[#1e3a5f] hover:text-[#2563eb] transition">
+                            <MessageCircle className="w-3.5 h-3.5" />{lang === "sw" ? "Zungumza" : "Chat"}
+                          </button>
+                        )}
                       </div>
                     ) : (
                       <p className="text-xs text-slate-400 italic pt-2">{t("client.notAssigned")}</p>
@@ -511,6 +525,7 @@ export function ClientPortal() {
       )}
 
       <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+      {activeChatId && <ChatPanel chatId={activeChatId} otherName={activeChatName} isOpen={true} onClose={() => setActiveChatId(null)} />}
     </div>
   );
 }
