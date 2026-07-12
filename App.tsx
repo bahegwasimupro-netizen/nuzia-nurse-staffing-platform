@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./components/auth";
 import { LanguageProvider } from "./components/language";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 import { MainLayout } from "./components/MainLayout";
 import { LandingPage } from "./components/LandingPage";
 import { ElectivePlacement } from "./components/ElectivePlacement";
@@ -24,9 +25,15 @@ export default function App() {
               <Route path="/pricing" element={<PricingPage />} />
             </Route>
             <Route path="/auth" element={<AuthPortal onClose={() => window.location.href = "/"} />} />
-            <Route path="/portal/client" element={<ClientPortal />} />
-            <Route path="/portal/nurse" element={<NursePortal />} />
-            <Route path="/portal/admin" element={<AdminPortal />} />
+            <Route element={<ProtectedRoute requiredRole="client" />}>
+              <Route path="/portal/client" element={<ClientPortal />} />
+            </Route>
+            <Route element={<ProtectedRoute requiredRole="nurse" />}>
+              <Route path="/portal/nurse" element={<NursePortal />} />
+            </Route>
+            <Route element={<ProtectedRoute requiredRole="admin" />}>
+              <Route path="/portal/admin" element={<AdminPortal />} />
+            </Route>
           </Routes>
         </LanguageProvider>
       </AuthProvider>
