@@ -11,6 +11,7 @@ import { uploadImage } from "./upload";
 import { findOrCreateChat } from "./chat";
 import { ChatPanel } from "./ChatPanel";
 import { AvailabilitySchedule } from "./AvailabilitySchedule";
+import { BottomNav } from "./BottomNav";
 
 interface Job {
   id: string;
@@ -142,7 +143,7 @@ export function NursePortal() {
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-5xl">
+      <main className="flex-1 container mx-auto px-4 py-8 pb-24 md:pb-8 max-w-5xl">
         <div className="bg-white rounded-2xl border p-6 shadow-sm mb-8 grid md:grid-cols-3 gap-6 items-center">
           <div className="flex items-center gap-4 md:border-r border-slate-100 pr-6">
             <img src={userProfile?.avatar || "https://images.unsplash.com/photo-1676552055618-22ec8cde399a?w=180"} alt={userProfile?.name} className="w-16 h-16 rounded-full object-cover border-2 border-[#1e3a5f] shadow-sm" />
@@ -295,6 +296,7 @@ export function NursePortal() {
 
       <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
       {activeChatId && <ChatPanel chatId={activeChatId} otherName={activeChatName} isOpen={true} onClose={() => setActiveChatId(null)} />}
+      <BottomNav role="nurse" />
     </div>
   );
 }

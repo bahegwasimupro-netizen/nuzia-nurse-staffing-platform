@@ -16,6 +16,7 @@ import { ChatPanel } from "./ChatPanel";
 import { ReviewModal } from "./ReviewModal";
 import { subscribeToJobReview } from "./reviews";
 import { sendJobAssignedEmail, sendPaymentConfirmationEmail } from "./emailService";
+import { BottomNav } from "./BottomNav";
 
 interface Job {
   id: string;
@@ -322,7 +323,7 @@ export function ClientPortal() {
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-5xl">
+      <main className="flex-1 container mx-auto px-4 py-8 pb-24 md:pb-8 max-w-5xl">
         <div className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold">{t("client.myServices")}</h1>
@@ -557,6 +558,7 @@ export function ClientPortal() {
       <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
       {activeChatId && <ChatPanel chatId={activeChatId} otherName={activeChatName} isOpen={true} onClose={() => setActiveChatId(null)} />}
       {reviewJobId && <ReviewModal isOpen={true} onClose={() => setReviewJobId(null)} jobId={reviewJobId} nurseId={reviewNurseId} nurseName={reviewNurseName} serviceType={reviewServiceType} />}
+      <BottomNav role="client" />
     </div>
   );
 }

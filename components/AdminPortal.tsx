@@ -11,6 +11,7 @@ import { useNotifications } from "./notifications";
 import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { JobHistory } from "./JobHistory";
 import { sendVerificationEmail } from "./emailService";
+import { BottomNav } from "./BottomNav";
 import L from "leaflet";
 
 interface Job {
@@ -193,7 +194,7 @@ export function AdminPortal() {
         </div>
       </header>
 
-      <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl space-y-8">
+      <main className="flex-1 container mx-auto px-4 py-8 pb-24 md:pb-8 max-w-6xl space-y-8">
         <div>
           <h1 className="text-3xl font-bold">{t("admin.dashboard")}</h1>
           <p className="text-slate-500">{t("admin.subtitle")}</p>
@@ -346,6 +347,7 @@ export function AdminPortal() {
       </main>
 
       <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
+      <BottomNav role="admin" />
     </div>
   );
 }
