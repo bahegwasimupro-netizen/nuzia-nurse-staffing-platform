@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "./auth";
+import { useAuth, UserProfile } from "./auth";
 import { useLang } from "./language";
 import { db } from "./firebase";
-import { collection, addDoc, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
-import { MapPin, Calendar, Clock, Clipboard, CheckCircle, CreditCard, Plus, LogOut, ArrowRight, User } from "lucide-react";
+import { collection, addDoc, query, where, onSnapshot, doc, updateDoc, getDocs } from "firebase/firestore";
+import { MapPin, Calendar, Clock, Clipboard, CheckCircle, CreditCard, Plus, LogOut, ArrowRight, User, Sparkles } from "lucide-react";
 import L from "leaflet";
+import { findBestNurse } from "./matching";
 
 interface Job {
   id: string;
@@ -48,6 +49,7 @@ export function ClientPortal() {
   const [paymentMethod, setPaymentMethod] = useState<"mpesa" | "airtel" | "card">("mpesa");
   const [phoneNumber, setPhoneNumber] = useState("");
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [matchResult, setMatchResult] = useState<{ nurseName: string; auto: boolean } | null>(null);
 
   const locale = lang === "sw" ? "sw-TZ" : "en-US";
 
@@ -120,22 +122,78 @@ export function ClientPortal() {
     if (!dateTime || !description || !userProfile) { alert(t("client.fillAll")); return; }
     setLoading(true);
     const jobData = { clientId: userProfile.uid, clientName: userProfile.name, type: jobType, location: locationCoords, locationName, datetime: dateTime, description, status: "Pending Assignment" as const, paymentStatus: "Unpaid" as const, createdAt: new Date().toISOString() };
+    let newJobId = "";
     if (isMock) {
       const current = localStorage.getItem(LOCAL_JOBS_KEY);
       const allJobs = current ? JSON.parse(current) : [];
-      const newJob = { id: "job-mock-" + Date.now(), ...jobData };
-      allJobs.push(newJob);
+      newJobId = "job-mock-" + Date.now();
+      allJobs.push({ id: newJobId, ...jobData });
       localStorage.setItem(LOCAL_JOBS_KEY, JSON.stringify(allJobs));
       setJobs(allJobs.filter((j: Job) => j.clientId === userProfile.uid));
     } else {
-      try { await addDoc(collection(db, "jobs"), jobData); } catch (err) {
+      try {
+        const docRef = await addDoc(collection(db, "jobs"), jobData);
+        newJobId = docRef.id;
+      } catch (err) {
         console.error("Firestore post failed:", err);
         const current = localStorage.getItem(LOCAL_JOBS_KEY);
         const allJobs = current ? JSON.parse(current) : [];
-        allJobs.push({ id: "job-mock-" + Date.now(), ...jobData });
+        newJobId = "job-mock-" + Date.now();
+        allJobs.push({ id: newJobId, ...jobData });
         localStorage.setItem(LOCAL_JOBS_KEY, JSON.stringify(allJobs));
       }
     }
+
+    // Auto-match: find best nurse
+    try {
+      let availableNurses: UserProfile[] = [];
+      let activeJobCounts: Record<string, number> = {};
+      if (isMock) {
+        const usersRaw = localStorage.getItem("nuzia_mock_users");
+        if (usersRaw) {
+          const allUsers: UserProfile[] = JSON.parse(usersRaw);
+          availableNurses = allUsers.filter((u) => u.role === "nurse" && u.available === true);
+        }
+        const jobsRaw = localStorage.getItem(LOCAL_JOBS_KEY);
+        if (jobsRaw) {
+          const allJobs: Job[] = JSON.parse(jobsRaw);
+          allJobs.forEach((j) => {
+            if (j.assignedNurseId && j.status !== "Completed") {
+              activeJobCounts[j.assignedNurseId] = (activeJobCounts[j.assignedNurseId] || 0) + 1;
+            }
+          });
+        }
+      } else {
+        const nurseSnap = await getDocs(query(collection(db, "users"), where("role", "==", "nurse"), where("available", "==", true)));
+        nurseSnap.forEach((d) => availableNurses.push({ uid: d.id, ...d.data() } as UserProfile));
+      }
+      const best = findBestNurse({ type: jobType, location: locationCoords }, availableNurses, activeJobCounts);
+      if (best) {
+        const assignedJob = { status: "Nurse Assigned", assignedNurseId: best.uid, assignedNurseName: best.name, assignedNursePhone: best.phone || "" };
+        if (isMock) {
+          const current = localStorage.getItem(LOCAL_JOBS_KEY);
+          if (current) {
+            const all = JSON.parse(current);
+            const idx = all.findIndex((j: Job) => j.id === newJobId);
+            if (idx !== -1) { Object.assign(all[idx], assignedJob); localStorage.setItem(LOCAL_JOBS_KEY, JSON.stringify(all)); }
+          }
+          const usersRaw = localStorage.getItem("nuzia_mock_users");
+          if (usersRaw) {
+            const allUsers: UserProfile[] = JSON.parse(usersRaw);
+            const nIdx = allUsers.findIndex((u) => u.uid === best.uid);
+            if (nIdx !== -1) { allUsers[nIdx].available = false; localStorage.setItem("nuzia_mock_users", JSON.stringify(allUsers)); }
+          }
+        } else {
+          await updateDoc(doc(db, "jobs", newJobId), assignedJob);
+          await updateDoc(doc(db, "users", best.uid), { available: false });
+        }
+        setMatchResult({ nurseName: best.name, auto: true });
+        setTimeout(() => setMatchResult(null), 5000);
+      }
+    } catch (e) {
+      console.warn("Auto-match failed, job saved as pending:", e);
+    }
+
     setLoading(false); setIsModalOpen(false); setDateTime(""); setDescription(""); setLocationCoords("-6.8200, 39.2800"); setLocationName("Dar es Salaam");
   };
 
@@ -196,6 +254,13 @@ export function ClientPortal() {
           <div className="mb-6 bg-cyan-50 border border-cyan-200 text-cyan-800 px-4 py-3 rounded-xl flex items-center gap-2 text-sm">
             <span className="w-2.5 h-2.5 rounded-full bg-cyan-500 animate-ping"></span>
             <span>{t("client.mockMode")}</span>
+          </div>
+        )}
+
+        {matchResult && (
+          <div className="mb-6 bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 rounded-xl flex items-center gap-2 text-sm">
+            <Sparkles className="w-4 h-4 text-emerald-600" />
+            <span>{lang === "sw" ? `Muuguzi ${matchResult.nurseName} amepangiwa kiotomatiki!` : `Nurse ${matchResult.nurseName} auto-assigned!`}</span>
           </div>
         )}
 

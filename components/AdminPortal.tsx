@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth, UserProfile, getMockUsers } from "./auth";
 import { db } from "./firebase";
 import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
-import { Users, Activity, DollarSign, MapPin, CheckCircle, Clock, RefreshCw, Layers, Award, LogOut } from "lucide-react";
+import { Users, Activity, DollarSign, MapPin, CheckCircle, Clock, RefreshCw, Layers, Award, LogOut, Sparkles } from "lucide-react";
 import { useLang } from "./language";
 import L from "leaflet";
 
@@ -96,12 +96,16 @@ export function AdminPortal() {
         const marker = L.marker([lat, lng], { icon: isPending ? redIcon : blueIcon }).bindPopup(`<div style="font-family:sans-serif; font-size:12px;"><b style="color:${isPending ? '#dc2626' : '#2563eb'}">${job.type}</b><br/><b>${clientLabel}</b> ${job.clientName}<br/><b>${statusLabel}</b> ${isPending ? pendingLabel : assignedLabel}<br/><b>${descLabel}</b> ${job.description.slice(0, 50)}...</div>`);
         if (markersGroup.current) marker.addTo(markersGroup.current);
       });
-      const nurseCoords: Record<string, [number, number]> = { "nurse-mock-1": [-6.8150, 39.2780], "nurse-mock-2": [-6.8280, 39.2950] };
+      const nurseCoords: Record<string, [number, number]> = {};
       nurses.forEach((nurse) => {
         if (!nurse.available) return;
         let lat = -6.8200, lng = 39.2800;
-        if (nurseCoords[nurse.uid]) { [lat, lng] = nurseCoords[nurse.uid]; }
-        else { lat += (Math.random() - 0.5) * 0.05; lng += (Math.random() - 0.5) * 0.05; }
+        if (nurse.locationCoords) {
+          const parts = nurse.locationCoords.split(",").map(Number);
+          if (!isNaN(parts[0]) && !isNaN(parts[1])) { lat = parts[0]; lng = parts[1]; }
+        } else if (nurseCoords[nurse.uid]) {
+          [lat, lng] = nurseCoords[nurse.uid];
+        } else { lat += (Math.random() - 0.5) * 0.05; lng += (Math.random() - 0.5) * 0.05; }
         const marker = L.marker([lat, lng], { icon: greenIcon }).bindPopup(`<div style="font-family:sans-serif; font-size:12px;"><b style="color:#059669">${nurse.name}</b><br/><b>${skillLabel}</b> ${nurse.specialty}<br/><b>${priceLabel}</b> TSh ${nurse.hourlyRate?.toLocaleString()}${t("common.perHour")}<br/><span style="color:#059669; font-weight:bold;">${readyLabel}</span></div>`);
         if (markersGroup.current) marker.addTo(markersGroup.current);
       });
@@ -159,6 +163,11 @@ export function AdminPortal() {
         <div>
           <h1 className="text-3xl font-bold">{t("admin.dashboard")}</h1>
           <p className="text-slate-500">{t("admin.subtitle")}</p>
+        </div>
+
+        <div className="bg-blue-50 border border-blue-200 text-blue-800 px-4 py-3 rounded-xl flex items-center gap-2 text-sm">
+          <Sparkles className="w-4 h-4 text-blue-600" />
+          <span>{lang === "sw" ? "Uchanganyaji wa wauguzi sasa unafanywa kiotomatiki. Maombi mapya yanapangwa muuguzi bora mara moja." : "Nurse matching is now automated. New requests are assigned the best nurse instantly."}</span>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
