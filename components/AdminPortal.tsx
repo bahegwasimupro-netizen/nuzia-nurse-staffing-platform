@@ -4,6 +4,7 @@ import { useAuth, UserProfile, getMockUsers } from "./auth";
 import { db } from "./firebase";
 import { collection, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import { Users, Activity, DollarSign, MapPin, CheckCircle, Clock, RefreshCw, Layers, Award, LogOut } from "lucide-react";
+import { useLang } from "./language";
 import L from "leaflet";
 
 interface Job {
@@ -28,6 +29,7 @@ const LOCAL_USERS_KEY = "nuzia_mock_users";
 
 export function AdminPortal() {
   const { logout, isMock } = useAuth();
+  const { t, lang } = useLang();
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [nurses, setNurses] = useState<UserProfile[]>([]);
@@ -78,12 +80,20 @@ export function AdminPortal() {
       const redIcon = L.divIcon({ className: 'custom-div-icon', html: `<div style="background-color:#dc2626; width:16px; height:16px; border-radius:50%; border:3px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>`, iconSize: [16, 16], iconAnchor: [8, 8] });
       const blueIcon = L.divIcon({ className: 'custom-div-icon', html: `<div style="background-color:#2563eb; width:16px; height:16px; border-radius:50%; border:3px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3);"></div>`, iconSize: [16, 16], iconAnchor: [8, 8] });
       const greenIcon = L.divIcon({ className: 'custom-div-icon', html: `<div style="background-color:#059669; width:20px; height:20px; border-radius:50%; border:3px solid white; box-shadow:0 2px 4px rgba(0,0,0,0.3); display:flex; align-items:center; justify-content:center; color:white; font-size:10px; font-weight:bold;">&#129657;</div>`, iconSize: [20, 20], iconAnchor: [10, 10] });
+      const clientLabel = lang === "sw" ? "Mteja:" : "Client:";
+      const statusLabel = lang === "sw" ? "Hali:" : "Status:";
+      const pendingLabel = t("admin.pending");
+      const assignedLabel = lang === "sw" ? "Iliyopangwa" : "Assigned";
+      const descLabel = lang === "sw" ? "Maelezo:" : "Description:";
+      const skillLabel = lang === "sw" ? "Ujuzi:" : "Specialty:";
+      const priceLabel = lang === "sw" ? "Bei:" : "Price:";
+      const readyLabel = t("admin.readyNurses");
       jobs.forEach((job) => {
         if (!job.location) return;
         const [lat, lng] = job.location.split(",").map(Number);
         if (isNaN(lat) || isNaN(lng)) return;
         const isPending = job.status === "Pending Assignment";
-        const marker = L.marker([lat, lng], { icon: isPending ? redIcon : blueIcon }).bindPopup(`<div style="font-family:sans-serif; font-size:12px;"><b style="color:${isPending ? '#dc2626' : '#2563eb'}">${job.type}</b><br/><b>Mteja:</b> ${job.clientName}<br/><b>Hali:</b> ${isPending ? "Inasubiri" : "Iliyopangwa"}<br/><b>Maelezo:</b> ${job.description.slice(0, 50)}...</div>`);
+        const marker = L.marker([lat, lng], { icon: isPending ? redIcon : blueIcon }).bindPopup(`<div style="font-family:sans-serif; font-size:12px;"><b style="color:${isPending ? '#dc2626' : '#2563eb'}">${job.type}</b><br/><b>${clientLabel}</b> ${job.clientName}<br/><b>${statusLabel}</b> ${isPending ? pendingLabel : assignedLabel}<br/><b>${descLabel}</b> ${job.description.slice(0, 50)}...</div>`);
         if (markersGroup.current) marker.addTo(markersGroup.current);
       });
       const nurseCoords: Record<string, [number, number]> = { "nurse-mock-1": [-6.8150, 39.2780], "nurse-mock-2": [-6.8280, 39.2950] };
@@ -92,14 +102,14 @@ export function AdminPortal() {
         let lat = -6.8200, lng = 39.2800;
         if (nurseCoords[nurse.uid]) { [lat, lng] = nurseCoords[nurse.uid]; }
         else { lat += (Math.random() - 0.5) * 0.05; lng += (Math.random() - 0.5) * 0.05; }
-        const marker = L.marker([lat, lng], { icon: greenIcon }).bindPopup(`<div style="font-family:sans-serif; font-size:12px;"><b style="color:#059669">${nurse.name}</b><br/><b>Ujuzi:</b> ${nurse.specialty}<br/><b>Bei:</b> TSh ${nurse.hourlyRate?.toLocaleString()}/saa<br/><span style="color:#059669; font-weight:bold;">Muuguzi Tayari</span></div>`);
+        const marker = L.marker([lat, lng], { icon: greenIcon }).bindPopup(`<div style="font-family:sans-serif; font-size:12px;"><b style="color:#059669">${nurse.name}</b><br/><b>${skillLabel}</b> ${nurse.specialty}<br/><b>${priceLabel}</b> TSh ${nurse.hourlyRate?.toLocaleString()}${t("common.perHour")}<br/><span style="color:#059669; font-weight:bold;">${readyLabel}</span></div>`);
         if (markersGroup.current) marker.addTo(markersGroup.current);
       });
     }
-  }, [jobs, nurses]);
+  }, [jobs, nurses, lang, t]);
 
   const handleAssignNurse = async (jobId: string) => {
-    if (!selectedNurseId) { alert("Tafadhali chagua muuguzi!"); return; }
+    if (!selectedNurseId) { alert(t("admin.selectNurseFirst")); return; }
     setLoading(true);
     const matchedNurse = nurses.find(n => n.uid === selectedNurseId);
     if (!matchedNurse) return;
@@ -116,7 +126,7 @@ export function AdminPortal() {
         await updateDoc(doc(db, "users", matchedNurse.uid), { available: false });
       } catch (e) { console.error("Firestore update failed", e); }
     }
-    setLoading(false); setAssigningJobId(null); setSelectedNurseId(""); alert("Muuguzi Amepangiwa Kazi!");
+    setLoading(false); setAssigningJobId(null); setSelectedNurseId(""); alert(t("admin.nurseAssigned"));
   };
 
   const handleLogout = () => { logout(); navigate("/"); };
@@ -124,6 +134,7 @@ export function AdminPortal() {
   const activeJobs = jobs.filter(j => j.status === "Nurse Assigned" || j.status === "Care in Progress");
   const availableNurses = nurses.filter(n => n.available);
   const totalEarnings = jobs.filter(j => j.paymentStatus === "Paid").reduce((sum, j) => { const rate = j.type.includes("ICU") ? 75000 : j.type.includes("Moyo") ? 65000 : 45000; return sum + rate; }, 0);
+  const dateLocale = lang === "sw" ? "sw-TZ" : "en-US";
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col">
@@ -135,48 +146,48 @@ export function AdminPortal() {
             </div>
             <div>
               <span className="font-bold text-xl tracking-wide">NUZIA</span>
-              <span className="text-xs text-slate-400 block">Administrative Center</span>
+              <span className="text-xs text-slate-400 block">{t("admin.adminCenter")}</span>
             </div>
           </div>
           <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition">
-            <LogOut className="w-4 h-4" /><span>Ondoka</span>
+            <LogOut className="w-4 h-4" /><span>{t("common.logout")}</span>
           </button>
         </div>
       </header>
 
       <main className="flex-1 container mx-auto px-4 py-8 max-w-6xl space-y-8">
         <div>
-          <h1 className="text-3xl font-bold">Admin Dashboard</h1>
-          <p className="text-slate-500">Udhibiti na mgawanyo wa huduma za afya Nuzia</p>
+          <h1 className="text-3xl font-bold">{t("admin.dashboard")}</h1>
+          <p className="text-slate-500">{t("admin.subtitle")}</p>
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
           <div className="bg-white p-6 rounded-2xl border shadow-sm flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center"><Clock className="w-6 h-6" /></div>
-            <div><p className="text-2xl font-bold">{pendingJobs.length}</p><p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Inasubiri</p></div>
+            <div><p className="text-2xl font-bold">{pendingJobs.length}</p><p className="text-xs text-slate-500 font-medium uppercase tracking-wider">{t("admin.pending")}</p></div>
           </div>
           <div className="bg-white p-6 rounded-2xl border shadow-sm flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center"><Activity className="w-6 h-6" /></div>
-            <div><p className="text-2xl font-bold">{activeJobs.length}</p><p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Active</p></div>
+            <div><p className="text-2xl font-bold">{activeJobs.length}</p><p className="text-xs text-slate-500 font-medium uppercase tracking-wider">{t("admin.active")}</p></div>
           </div>
           <div className="bg-white p-6 rounded-2xl border shadow-sm flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center"><Users className="w-6 h-6" /></div>
-            <div><p className="text-2xl font-bold">{availableNurses.length}</p><p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Wauguzi Tayari</p></div>
+            <div><p className="text-2xl font-bold">{availableNurses.length}</p><p className="text-xs text-slate-500 font-medium uppercase tracking-wider">{t("admin.readyNurses")}</p></div>
           </div>
           <div className="bg-white p-6 rounded-2xl border shadow-sm flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-[#1e3a5f]/10 text-[#1e3a5f] flex items-center justify-center"><DollarSign className="w-6 h-6" /></div>
-            <div><p className="text-2xl font-bold">TSh {totalEarnings.toLocaleString()}</p><p className="text-xs text-slate-500 font-medium uppercase tracking-wider">Mapato</p></div>
+            <div><p className="text-2xl font-bold">TSh {totalEarnings.toLocaleString()}</p><p className="text-xs text-slate-500 font-medium uppercase tracking-wider">{t("admin.revenue")}</p></div>
           </div>
         </div>
 
         <div className="grid lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-2xl border p-6 shadow-sm">
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><RefreshCw className="w-5 h-5 text-[#1e3a5f]" /><span>Panga Wauguzi</span></h2>
+              <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><RefreshCw className="w-5 h-5 text-[#1e3a5f]" /><span>{t("admin.assignNurses")}</span></h2>
               {pendingJobs.length === 0 ? (
                 <div className="p-8 text-center text-slate-400 text-sm">
                   <CheckCircle className="w-8 h-8 text-emerald-500 mx-auto mb-2" />
-                  <span>Maombi yote yameshapangiwa wauguzi!</span>
+                  <span>{t("admin.allAssigned")}</span>
                 </div>
               ) : (
                 <div className="divide-y space-y-4">
@@ -186,21 +197,21 @@ export function AdminPortal() {
                         <div>
                           <span className="inline-block text-[10px] font-bold px-2 py-0.5 bg-slate-100 rounded border border-slate-200">{job.type}</span>
                           <h4 className="font-bold mt-1">{job.description}</h4>
-                          <p className="text-xs text-slate-500 flex items-center gap-1 mt-1"><MapPin className="w-3.5 h-3.5" /><span>{job.locationName} &bull; {new Date(job.datetime).toLocaleString("sw-TZ")}</span></p>
+                          <p className="text-xs text-slate-500 flex items-center gap-1 mt-1"><MapPin className="w-3.5 h-3.5" /><span>{job.locationName} &bull; {new Date(job.datetime).toLocaleString(dateLocale)}</span></p>
                         </div>
                         {assigningJobId === job.id ? (
                           <div className="flex flex-col gap-2 w-48 shrink-0">
                             <select value={selectedNurseId} onChange={(e) => setSelectedNurseId(e.target.value)} className="border rounded-lg p-2 text-xs bg-slate-50 w-full">
-                              <option value="">-- Chagua Muuguzi --</option>
+                              <option value="">{t("admin.selectNurse")}</option>
                               {availableNurses.map((nurse) => (<option key={nurse.uid} value={nurse.uid}>{nurse.name} ({nurse.specialty})</option>))}
                             </select>
                             <div className="flex gap-2">
-                              <button onClick={() => handleAssignNurse(job.id)} disabled={loading} className="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded text-[10px]">Panga</button>
-                              <button onClick={() => setAssigningJobId(null)} className="w-1/2 bg-slate-100 hover:bg-slate-200 py-1.5 rounded text-[10px]">Ghairi</button>
+                              <button onClick={() => handleAssignNurse(job.id)} disabled={loading} className="w-1/2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-1.5 rounded text-[10px]">{t("admin.assign")}</button>
+                              <button onClick={() => setAssigningJobId(null)} className="w-1/2 bg-slate-100 hover:bg-slate-200 py-1.5 rounded text-[10px]">{t("admin.cancel")}</button>
                             </div>
                           </div>
                         ) : (
-                          <button onClick={() => { setAssigningJobId(job.id); setSelectedNurseId(""); }} className="bg-gradient-to-r from-[#1e3a5f] to-[#2563eb] text-white font-bold py-2 px-4 rounded-xl text-xs transition">Tafuta Muuguzi</button>
+                          <button onClick={() => { setAssigningJobId(job.id); setSelectedNurseId(""); }} className="bg-gradient-to-r from-[#1e3a5f] to-[#2563eb] text-white font-bold py-2 px-4 rounded-xl text-xs transition">{t("admin.findNurse")}</button>
                         )}
                       </div>
                     </div>
@@ -210,11 +221,11 @@ export function AdminPortal() {
             </div>
 
             <div className="bg-white rounded-2xl border p-6 shadow-sm">
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><Layers className="w-5 h-5 text-cyan-600" /><span>Nuzia Live GIS Tracker</span></h2>
+              <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><Layers className="w-5 h-5 text-cyan-600" /><span>{t("admin.gisTracker")}</span></h2>
               <div className="flex gap-4 text-xs font-semibold text-slate-500 mb-3 bg-slate-50 p-2.5 rounded-lg border border-dashed">
-                <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-600 block"></span><span>Inasubiri</span></div>
-                <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[#2563eb] block"></span><span>Active</span></div>
-                <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-500 block"></span><span>Wauguzi</span></div>
+                <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-600 block"></span><span>{t("admin.pending")}</span></div>
+                <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-[#2563eb] block"></span><span>{t("admin.active")}</span></div>
+                <div className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-500 block"></span><span>{lang === "sw" ? "Wauguzi" : "Nurses"}</span></div>
               </div>
               <div ref={mapContainer} className="h-[300px] w-full rounded-xl border bg-slate-100 shadow-inner" style={{ zIndex: 1 }}></div>
             </div>
@@ -222,7 +233,7 @@ export function AdminPortal() {
 
           <div className="space-y-6">
             <div className="bg-white rounded-2xl border p-6 shadow-sm">
-              <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><Award className="w-5 h-5 text-emerald-600" /><span>Orodha ya Wauguzi ({nurses.length})</span></h2>
+              <h2 className="text-lg font-bold mb-4 flex items-center gap-2"><Award className="w-5 h-5 text-emerald-600" /><span>{t("admin.nurseList")} ({nurses.length})</span></h2>
               <div className="divide-y space-y-3.5">
                 {nurses.map((nurse) => (
                   <div key={nurse.uid} className="pt-3.5 first:pt-0 flex items-center justify-between gap-3 text-xs">
@@ -231,11 +242,11 @@ export function AdminPortal() {
                       <div>
                         <h4 className="font-bold">{nurse.name}</h4>
                         <p className="text-[10px] text-slate-400">{nurse.specialty}</p>
-                        <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">TSh {nurse.hourlyRate?.toLocaleString()}/saa</p>
+                        <p className="text-[10px] text-emerald-600 font-semibold mt-0.5">TSh {nurse.hourlyRate?.toLocaleString()}{t("common.perHour")}</p>
                       </div>
                     </div>
                     <span className={`font-bold px-2 py-0.5 rounded text-[10px] ${nurse.available ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-400"}`}>
-                      {nurse.available ? "Active" : "Busy"}
+                      {nurse.available ? t("admin.active") : t("admin.busy")}
                     </span>
                   </div>
                 ))}
@@ -244,8 +255,8 @@ export function AdminPortal() {
 
             <div className="bg-[#0f1d35] text-white p-6 rounded-2xl shadow-lg relative overflow-hidden">
               <div className="absolute -right-8 -bottom-8 w-24 h-24 bg-white/5 rounded-full"></div>
-              <h3 className="text-sm uppercase font-semibold text-slate-400 tracking-wider mb-2">Mfumo na Ulinzi</h3>
-              <p className="text-xs leading-relaxed text-slate-300">Wauguzi wote wanasajiliwa na namba zao za <b>TNMC</b>. Hakikisha unapiga simu au kufanya uhakiki wa leseni kabla ya kumpitisha muuguzi kuwa active.</p>
+              <h3 className="text-sm uppercase font-semibold text-slate-400 tracking-wider mb-2">{t("admin.systemSecurity")}</h3>
+              <p className="text-xs leading-relaxed text-slate-300">{t("admin.securityDesc")}</p>
             </div>
           </div>
         </div>

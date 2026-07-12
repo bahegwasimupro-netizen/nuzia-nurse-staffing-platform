@@ -4,6 +4,7 @@ import { useAuth } from "./auth";
 import { db } from "./firebase";
 import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
 import { CheckCircle, Clock, MapPin, Calendar, LogOut, Heart, Star } from "lucide-react";
+import { useLang } from "./language";
 
 interface Job {
   id: string;
@@ -26,6 +27,7 @@ const LOCAL_JOBS_KEY = "nuzia_mock_jobs";
 export function NursePortal() {
   const { userProfile, updateProfile, logout, isMock } = useAuth();
   const navigate = useNavigate();
+  const { t, lang } = useLang();
   const [assignedJobs, setAssignedJobs] = useState<Job[]>([]);
   const [loadingJobId, setLoadingJobId] = useState<string | null>(null);
 
@@ -77,6 +79,7 @@ export function NursePortal() {
   const handleLogout = () => { logout(); navigate("/"); };
   const activeTasks = assignedJobs.filter(j => j.status !== "Completed");
   const completedTasks = assignedJobs.filter(j => j.status === "Completed");
+  const locale = lang === "sw" ? "sw-TZ" : "en-US";
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col">
@@ -88,16 +91,16 @@ export function NursePortal() {
             </div>
             <div>
               <span className="font-bold text-xl tracking-wide">NUZIA</span>
-              <span className="text-xs text-slate-400 block">Nurse Practitioner Portal</span>
+              <span className="text-xs text-slate-400 block">{t("nurse.portal")}</span>
             </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
               <p className="font-medium text-sm">{userProfile?.name}</p>
-              <p className="text-xs text-emerald-600 font-semibold uppercase">TNMC Certified</p>
+              <p className="text-xs text-emerald-600 font-semibold uppercase">{t("nurse.tnmcCert")}</p>
             </div>
             <button onClick={handleLogout} className="flex items-center gap-2 px-3 py-2 text-sm text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition">
-              <LogOut className="w-4 h-4" /><span>Ondoka</span>
+              <LogOut className="w-4 h-4" /><span>{t("common.logout")}</span>
             </button>
           </div>
         </div>
@@ -109,21 +112,21 @@ export function NursePortal() {
             <img src={userProfile?.avatar || "https://images.unsplash.com/photo-1676552055618-22ec8cde399a?w=180"} alt={userProfile?.name} className="w-16 h-16 rounded-full object-cover border-2 border-[#1e3a5f] shadow-sm" />
             <div>
               <h2 className="font-bold text-lg">{userProfile?.name}</h2>
-              <p className="text-sm text-[#1e3a5f] font-medium">{userProfile?.specialty || "Huduma za Jumla"}</p>
+              <p className="text-sm text-[#1e3a5f] font-medium">{userProfile?.specialty || t("nurse.generalCare")}</p>
               <div className="flex items-center gap-1 text-amber-500 mt-1">
-                <Star className="w-3.5 h-3.5 fill-current" /><span className="text-xs font-bold text-slate-600">4.9 (Ukadiriaji)</span>
+                <Star className="w-3.5 h-3.5 fill-current" /><span className="text-xs font-bold text-slate-600">4.9 ({t("nurse.rating")})</span>
               </div>
             </div>
           </div>
           <div className="space-y-1 md:border-r border-slate-100 pr-6 md:pl-2">
-            <div className="flex justify-between text-sm"><span className="text-slate-500">Mshahara:</span><span className="font-bold text-emerald-600">TSh {userProfile?.hourlyRate?.toLocaleString() || "45,000"}/saa</span></div>
-            <div className="flex justify-between text-sm"><span className="text-slate-500">Uzoefu:</span><span className="font-medium">{userProfile?.experience || "Miaka 8"}</span></div>
-            <div className="flex justify-between text-sm"><span className="text-slate-500">Hali ya TNMC:</span><span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Kipitishwa</span></div>
+            <div className="flex justify-between text-sm"><span className="text-slate-500">{t("nurse.salary")}</span><span className="font-bold text-emerald-600">TSh {userProfile?.hourlyRate?.toLocaleString() || "45,000"}{t("common.perHour")}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-slate-500">{t("nurse.experienceLabel")}</span><span className="font-medium">{userProfile?.experience || "Miaka 8"}</span></div>
+            <div className="flex justify-between text-sm"><span className="text-slate-500">{t("nurse.tnmcStatus")}</span><span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">{t("nurse.approved")}</span></div>
           </div>
           <div className="bg-slate-50 p-4 rounded-xl border flex flex-col justify-center items-center">
-            <span className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">Upatikanaji Wangu</span>
+            <span className="text-xs text-slate-500 font-medium uppercase tracking-wider mb-2">{t("nurse.availability")}</span>
             <div className="flex items-center gap-3">
-              <span className={`text-sm font-bold ${userProfile?.available ? "text-emerald-600" : "text-slate-400"}`}>{userProfile?.available ? "Niko Tayari Kazi" : "Siko Kazini"}</span>
+              <span className={`text-sm font-bold ${userProfile?.available ? "text-emerald-600" : "text-slate-400"}`}>{userProfile?.available ? t("nurse.availableStatus") : t("nurse.unavailableStatus")}</span>
               <button onClick={handleToggleAvailability} className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ${userProfile?.available ? "bg-emerald-500" : "bg-slate-300"}`}>
                 <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ${userProfile?.available ? "translate-x-6" : "translate-x-1"}`} />
               </button>
@@ -133,15 +136,15 @@ export function NursePortal() {
 
         <div className="space-y-6">
           <div>
-            <h3 className="text-xl font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500 fill-current" /><span>Kazi Nilizopangiwa ({activeTasks.length})</span></h3>
-            <p className="text-sm text-slate-500">Kazi zenye uhitaji wa utendaji wako kwa sasa</p>
+            <h3 className="text-xl font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500 fill-current" /><span>{t("nurse.assignedJobs")} ({activeTasks.length})</span></h3>
+            <p className="text-sm text-slate-500">{t("nurse.jobDesc")}</p>
           </div>
 
           {activeTasks.length === 0 ? (
             <div className="bg-white rounded-2xl border p-12 text-center shadow-sm">
               <div className="w-12 h-12 bg-slate-100 text-slate-400 rounded-full flex items-center justify-center mx-auto mb-3"><Clock className="w-6 h-6" /></div>
-              <h4 className="font-semibold">Hakuna Kazi Bado</h4>
-              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">Weka hali yako kama <b>"Niko Tayari Kazi"</b> ili msimamizi akupangie wagonjwa.</p>
+              <h4 className="font-semibold">{t("nurse.noJobs")}</h4>
+              <p className="text-xs text-slate-400 mt-1 max-w-sm mx-auto">{t("nurse.noJobsDesc")}</p>
             </div>
           ) : (
             <div className="grid gap-6">
@@ -153,29 +156,29 @@ export function NursePortal() {
                       <h4 className="text-base font-bold">{job.description}</h4>
                     </div>
                     <span className={`text-xs font-bold px-3 py-1.5 rounded-full ${job.status === "Nurse Assigned" ? "bg-amber-100 text-amber-800 border border-amber-200" : "bg-indigo-100 text-indigo-800 border border-indigo-200"}`}>
-                      {job.status === "Nurse Assigned" ? "Imepangwa - Inasubiri Kusafiri" : "Huduma Inaendelea"}
+                      {job.status === "Nurse Assigned" ? t("nurse.assignedStatus") : t("nurse.inProgressStatus")}
                     </span>
                   </div>
                   <div className="grid md:grid-cols-3 gap-6 text-sm">
                     <div className="space-y-2.5">
-                      <h5 className="font-semibold text-xs text-slate-400 uppercase tracking-wider">Mteja / Mahali</h5>
+                      <h5 className="font-semibold text-xs text-slate-400 uppercase tracking-wider">{t("nurse.clientLocation")}</h5>
                       <p className="font-bold">{job.clientName}</p>
                       <div className="flex items-center gap-2"><MapPin className="w-4 h-4 text-slate-400" /><span>{job.locationName}</span></div>
                     </div>
                     <div className="space-y-2.5">
-                      <h5 className="font-semibold text-xs text-slate-400 uppercase tracking-wider">Muda</h5>
-                      <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-slate-400" /><span>{new Date(job.datetime).toLocaleDateString("sw-TZ")}</span></div>
-                      <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-slate-400" /><span>{new Date(job.datetime).toLocaleTimeString("sw-TZ", { hour: '2-digit', minute: '2-digit' })}</span></div>
+                      <h5 className="font-semibold text-xs text-slate-400 uppercase tracking-wider">{t("nurse.timeLabel")}</h5>
+                      <div className="flex items-center gap-2"><Calendar className="w-4 h-4 text-slate-400" /><span>{new Date(job.datetime).toLocaleDateString(locale)}</span></div>
+                      <div className="flex items-center gap-2"><Clock className="w-4 h-4 text-slate-400" /><span>{new Date(job.datetime).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</span></div>
                     </div>
                     <div className="flex flex-col justify-end">
                       {job.status === "Nurse Assigned" && (
                         <button disabled={loadingJobId === job.id} onClick={() => handleUpdateStatus(job.id, "Care in Progress")} className="w-full bg-gradient-to-r from-[#1e3a5f] to-[#2563eb] text-white font-bold py-3 px-4 rounded-xl shadow-md transition text-center">
-                          {loadingJobId === job.id ? "Inasajili..." : "Anza Safari"}
+                          {loadingJobId === job.id ? t("nurse.registering") : t("nurse.startTravel")}
                         </button>
                       )}
                       {job.status === "Care in Progress" && (
                         <button disabled={loadingJobId === job.id} onClick={() => handleUpdateStatus(job.id, "Completed")} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl shadow-md transition text-center">
-                          {loadingJobId === job.id ? "Inasajili..." : "Kamilisha Huduma"}
+                          {loadingJobId === job.id ? t("nurse.registering") : t("nurse.completeService")}
                         </button>
                       )}
                     </div>
@@ -186,9 +189,9 @@ export function NursePortal() {
           )}
 
           <div className="pt-6">
-            <h3 className="text-lg font-bold mb-4">Kazi Zilizokamilika ({completedTasks.length})</h3>
+            <h3 className="text-lg font-bold mb-4">{t("nurse.completedJobs")} ({completedTasks.length})</h3>
             {completedTasks.length === 0 ? (
-              <p className="text-xs text-slate-400 italic">Bado hujakamilisha kazi yoyote.</p>
+              <p className="text-xs text-slate-400 italic">{t("nurse.noCompleted")}</p>
             ) : (
               <div className="bg-white rounded-xl border divide-y shadow-sm">
                 {completedTasks.map((job) => (
@@ -199,7 +202,7 @@ export function NursePortal() {
                     </div>
                     <div className="flex items-center gap-2.5">
                       <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${job.paymentStatus === "Paid" ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-700"}`}>
-                        {job.paymentStatus === "Paid" ? "Malipo Yamepokelewa" : "Inasubiri Malipo"}
+                        {job.paymentStatus === "Paid" ? t("nurse.paymentReceived") : t("nurse.awaitingPayment")}
                       </span>
                       <CheckCircle className="w-5 h-5 text-emerald-500" />
                     </div>

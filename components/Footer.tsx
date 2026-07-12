@@ -80,7 +80,7 @@ export function Footer() {
         <div className="border-t border-gray-800 pt-8 mt-12">
           <div className="flex flex-col md:flex-row justify-between items-center">
             <p className="text-gray-400 text-sm">
-              &copy; 2025 NUZIA by Tanzanite Life Care. {t("footer.rights")}
+              &copy; {new Date().getFullYear()} NUZIA by Tanzanite Life Care. {t("footer.rights")}
             </p>
             <div className="flex gap-6 text-sm text-gray-400 mt-4 md:mt-0">
               <a href="#" className="hover:text-white transition">{t("footer.privacy")}</a>
