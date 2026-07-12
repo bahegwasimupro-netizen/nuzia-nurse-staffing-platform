@@ -4,7 +4,7 @@ import { useAuth, UserProfile } from "./auth";
 import { useLang } from "./language";
 import { db } from "./firebase";
 import { collection, addDoc, query, where, onSnapshot, doc, updateDoc, getDocs } from "firebase/firestore";
-import { MapPin, Calendar, Clock, Clipboard, CheckCircle, CreditCard, Plus, LogOut, ArrowRight, User, Sparkles, Settings, Phone, Shield, Loader2, AlertCircle, MessageCircle } from "lucide-react";
+import { MapPin, Calendar, Clock, Clipboard, CheckCircle, CreditCard, Plus, LogOut, ArrowRight, User, Sparkles, Settings, Phone, Shield, Loader2, AlertCircle, MessageCircle, Star } from "lucide-react";
 import L from "leaflet";
 import { findBestNurse } from "./matching";
 import { ProfileModal } from "./ProfileModal";
@@ -13,6 +13,8 @@ import { useNotifications } from "./notifications";
 import { initiateStkPush, pollPaymentStatus, calculateAmount, formatAmount } from "./payments";
 import { findOrCreateChat } from "./chat";
 import { ChatPanel } from "./ChatPanel";
+import { ReviewModal } from "./ReviewModal";
+import { subscribeToJobReview } from "./reviews";
 
 interface Job {
   id: string;
@@ -60,6 +62,11 @@ export function ClientPortal() {
   const [paymentMessage, setPaymentMessage] = useState("");
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
   const [activeChatName, setActiveChatName] = useState("");
+  const [reviewJobId, setReviewJobId] = useState<string | null>(null);
+  const [reviewNurseId, setReviewNurseId] = useState("");
+  const [reviewNurseName, setReviewNurseName] = useState("");
+  const [reviewServiceType, setReviewServiceType] = useState("");
+  const [reviewedJobIds, setReviewedJobIds] = useState<Set<string>>(new Set());
   const [matchResult, setMatchResult] = useState<{ nurseName: string; auto: boolean } | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
 
@@ -112,6 +119,18 @@ export function ClientPortal() {
       } catch (e) { console.error(e); }
     }
   }, [userProfile, isMock]);
+
+  useEffect(() => {
+    if (isMock) return;
+    const unsubs = jobs
+      .filter((j) => j.status === "Completed" && j.paymentStatus === "Paid")
+      .map((j) =>
+        subscribeToJobReview(j.id, isMock, (rev) => {
+          if (rev) setReviewedJobIds((prev) => new Set([...prev, j.id]));
+        })
+      );
+    return () => unsubs.forEach((u) => u());
+  }, [jobs, isMock]);
 
   useEffect(() => {
     if (isModalOpen && mapRef.current && !leafletMap.current) {
@@ -379,14 +398,22 @@ export function ClientPortal() {
                       <p className="text-xs text-slate-400 italic pt-2">{t("client.notAssigned")}</p>
                     )}
                   </div>
-                  <div className="flex flex-col justify-end">
+                  <div className="flex flex-col justify-end gap-2">
                     {job.status === "Completed" && job.paymentStatus === "Unpaid" && (
                       <button onClick={() => setPayingJob(job)} className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition">
                         <CreditCard className="w-5 h-5" /><span>{t("client.payNow")}</span>
                       </button>
                     )}
                     {job.paymentStatus === "Paid" && (
-                      <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-xl text-center text-emerald-700 text-xs font-semibold flex items-center justify-center gap-1.5"><CheckCircle className="w-4 h-4" /><span>{t("client.paymentReceived")}</span></div>
+                      <div className="bg-emerald-50 border border-emerald-100 p-3 rounded-xl text-center text-emerald-700 text-xs font-semibold flex items-center justify-center gap-1.5"><CheckCircle className="w-4 h-4" /><span>{t("client.paymentReceived")}</span></div>
+                    )}
+                    {job.status === "Completed" && job.paymentStatus === "Paid" && job.assignedNurseId && !reviewedJobIds.has(job.id) && (
+                      <button onClick={() => { setReviewJobId(job.id); setReviewNurseId(job.assignedNurseId!); setReviewNurseName(job.assignedNurseName || "Nurse"); setReviewServiceType(job.type); }} className="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2.5 px-4 rounded-xl flex items-center justify-center gap-2 shadow-md transition text-xs">
+                        <Star className="w-4 h-4" /><span>{lang === "sw" ? "Kadiri Muuguzi" : "Rate Nurse"}</span>
+                      </button>
+                    )}
+                    {job.status === "Completed" && job.paymentStatus === "Paid" && reviewedJobIds.has(job.id) && (
+                      <div className="bg-amber-50 border border-amber-100 p-3 rounded-xl text-center text-amber-700 text-xs font-semibold flex items-center justify-center gap-1.5"><Star className="w-4 h-4 fill-current" /><span>{lang === "sw" ? "Umeshakadiria" : "Reviewed"}</span></div>
                     )}
                     {job.status !== "Completed" && job.paymentStatus === "Unpaid" && (
                       <div className="text-xs text-slate-400 bg-slate-50 p-4 rounded-xl border border-dashed text-center">{t("client.paymentPending")}</div>
@@ -526,6 +553,7 @@ export function ClientPortal() {
 
       <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
       {activeChatId && <ChatPanel chatId={activeChatId} otherName={activeChatName} isOpen={true} onClose={() => setActiveChatId(null)} />}
+      {reviewJobId && <ReviewModal isOpen={true} onClose={() => setReviewJobId(null)} jobId={reviewJobId} nurseId={reviewNurseId} nurseName={reviewNurseName} serviceType={reviewServiceType} />}
     </div>
   );
 }
