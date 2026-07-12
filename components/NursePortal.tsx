@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "./auth";
 import { db } from "./firebase";
 import { collection, query, where, onSnapshot, doc, updateDoc } from "firebase/firestore";
-import { CheckCircle, Clock, MapPin, Calendar, LogOut, Heart, Star, Settings } from "lucide-react";
+import { CheckCircle, Clock, MapPin, Calendar, LogOut, Heart, Star, Settings, Upload } from "lucide-react";
 import { useLang } from "./language";
 import { ProfileModal } from "./ProfileModal";
+import { uploadImage } from "./upload";
 
 interface Job {
   id: string;
@@ -32,6 +33,29 @@ export function NursePortal() {
   const [assignedJobs, setAssignedJobs] = useState<Job[]>([]);
   const [loadingJobId, setLoadingJobId] = useState<string | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [uploadingLicense, setUploadingLicense] = useState(false);
+  const [licenseProgress, setLicenseProgress] = useState(0);
+  const licenseRef = useRef<HTMLInputElement>(null);
+
+  const handleLicenseUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !userProfile) return;
+    const maxSize = 10 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert(lang === "sw" ? "Faili ni kubwa sana (max 10MB)" : "File too large (max 10MB)");
+      return;
+    }
+    setUploadingLicense(true);
+    setLicenseProgress(0);
+    try {
+      const ext = file.name.split(".").pop() || "doc";
+      const url = await uploadImage(file, `licenses/${userProfile.uid}/${Date.now()}.${ext}`, setLicenseProgress);
+      await updateProfile({ verificationStatus: "pending", tnmcNumber: userProfile.tnmcNumber || "" });
+      setUploadingLicense(false);
+    } catch {
+      setUploadingLicense(false);
+    }
+  };
 
   useEffect(() => {
     if (!userProfile) return;
@@ -151,7 +175,26 @@ export function NursePortal() {
           </div>
         </div>
 
-        <div className="space-y-6">
+        {userProfile?.verificationStatus !== "verified" && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center"><Upload className="w-5 h-5 text-amber-600" /></div>
+              <div>
+                <p className="text-sm font-bold text-amber-800">{lang === "sw" ? "Weka Leseni ya TNMC" : "Upload TNMC License"}</p>
+                <p className="text-xs text-amber-600">{userProfile?.verificationStatus === "rejected" ? (lang === "sw" ? "Leseni yako imeshindikwa. Tafadhali weka upya." : "Your license was rejected. Please re-upload.") : (lang === "sw" ? "Weka leseni yako ya TNMC kupata uthibitisho" : "Upload your TNMC license for verification")}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-3">
+              {uploadingLicense && <span className="text-xs text-amber-700 font-semibold">{licenseProgress}%</span>}
+              <button onClick={() => licenseRef.current?.click()} disabled={uploadingLicense} className="bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold px-4 py-2 rounded-xl transition disabled:opacity-50 flex items-center gap-2">
+                <Upload className="w-4 h-4" /><span>{uploadingLicense ? (lang === "sw" ? "Inapakia..." : "Uploading...") : (lang === "sw" ? "Weka Faili" : "Choose File")}</span>
+              </button>
+              <input ref={licenseRef} type="file" accept="image/*,.pdf" onChange={handleLicenseUpload} className="hidden" />
+            </div>
+          </div>
+        )}
+
+        <div className="space-y-6 mt-6">
           <div>
             <h3 className="text-xl font-bold flex items-center gap-2"><Heart className="w-5 h-5 text-red-500 fill-current" /><span>{t("nurse.assignedJobs")} ({activeTasks.length})</span></h3>
             <p className="text-sm text-slate-500">{t("nurse.jobDesc")}</p>

@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth, UserProfile } from "./auth";
 import { useLang } from "./language";
-import { X, User, Save } from "lucide-react";
+import { X, User, Save, Camera, Upload } from "lucide-react";
+import { uploadImage } from "./upload";
 
 interface ProfileModalProps {
   isOpen: boolean;
@@ -12,6 +13,9 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const { userProfile, updateProfile } = useAuth();
   const { t, lang } = useLang();
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadPct, setUploadPct] = useState(0);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(userProfile?.name || "");
   const [phone, setPhone] = useState(userProfile?.phone || "");
@@ -20,14 +24,39 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
   const [experience, setExperience] = useState(userProfile?.experience || "");
   const [hourlyRate, setHourlyRate] = useState(String(userProfile?.hourlyRate || ""));
   const [tnmcNumber, setTnmcNumber] = useState(userProfile?.tnmcNumber || "");
+  const [avatarPreview, setAvatarPreview] = useState(userProfile?.avatar || "");
+  const [avatarUrl, setAvatarUrl] = useState(userProfile?.avatar || "");
 
   if (!isOpen || !userProfile) return null;
 
   const isNurse = userProfile.role === "nurse";
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) {
+      alert(lang === "sw" ? "Picha ni kubwa sana (max 5MB)" : "Image too large (max 5MB)");
+      return;
+    }
+
+    setAvatarPreview(URL.createObjectURL(file));
+    setUploading(true);
+    setUploadPct(0);
+
+    try {
+      const url = await uploadImage(file, `avatars/${userProfile.uid}`, setUploadPct);
+      setAvatarUrl(url);
+    } catch {
+      setAvatarPreview(userProfile?.avatar || "");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSave = async () => {
     setLoading(true);
     const data: Partial<UserProfile> = { name, phone, location };
+    if (avatarUrl) data.avatar = avatarUrl;
     if (isNurse) {
       data.specialty = specialty;
       data.experience = experience;
@@ -39,8 +68,6 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
     onClose();
   };
 
-  const label = (key: string) => lang === "sw" ? key : key;
-
   return (
     <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
@@ -51,6 +78,24 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
               <h2 className="text-xl font-bold">{lang === "sw" ? "Hariri Wasifu" : "Edit Profile"}</h2>
             </div>
             <button onClick={onClose} className="text-slate-400 hover:text-slate-600 text-2xl font-semibold">&times;</button>
+          </div>
+
+          <div className="flex flex-col items-center mb-6">
+            <div className="relative group">
+              <img src={avatarPreview || "https://images.unsplash.com/photo-1676552055618-22ec8cde399a?w=180"} alt="avatar" className="w-20 h-20 rounded-full object-cover border-2 border-[#1e3a5f] shadow-sm" />
+              <button onClick={() => fileRef.current?.click()} className="absolute inset-0 bg-slate-900/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
+                <Camera className="w-5 h-5 text-white" />
+              </button>
+            </div>
+            <input ref={fileRef} type="file" accept="image/*" onChange={handleAvatarChange} className="hidden" />
+            {uploading && (
+              <div className="w-40 mt-2">
+                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-[#1e3a5f] rounded-full transition-all duration-300" style={{ width: `${uploadPct}%` }} />
+                </div>
+                <p className="text-[10px] text-center text-slate-400 mt-1">{uploadPct}%</p>
+              </div>
+            )}
           </div>
 
           <div className="space-y-4">
@@ -98,7 +143,7 @@ export function ProfileModal({ isOpen, onClose }: ProfileModalProps) {
 
           <div className="flex gap-4 mt-6">
             <button onClick={onClose} className="w-1/2 bg-slate-100 hover:bg-slate-200 font-bold py-3 px-4 rounded-xl transition">{lang === "sw" ? "Ghairi" : "Cancel"}</button>
-            <button onClick={handleSave} disabled={loading} className="w-1/2 bg-gradient-to-r from-[#1e3a5f] to-[#2563eb] text-white font-bold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2">
+            <button onClick={handleSave} disabled={loading || uploading} className="w-1/2 bg-gradient-to-r from-[#1e3a5f] to-[#2563eb] text-white font-bold py-3 px-4 rounded-xl transition flex items-center justify-center gap-2 disabled:opacity-50">
               <Save className="w-4 h-4" /><span>{loading ? "..." : lang === "sw" ? "Hifadhi" : "Save"}</span>
             </button>
           </div>
