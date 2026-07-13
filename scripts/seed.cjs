@@ -10,14 +10,15 @@
  * It will use whatever account you're logged in with via `firebase login`.
  */
 
-const admin = require("firebase-admin");
+const { initializeApp, cert, applicationDefault } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
 
 // Initialize with application default credentials (uses firebase login)
-admin.initializeApp({
+const app = initializeApp({
   projectId: "nuzia-3b9c0",
 });
 
-const db = admin.firestore();
+const db = getFirestore(app);
 
 const nurses = [
   { uid: "nurse_001", name: "Fatuma Mwalimu", specialty: "Home Care", experience: "8 years", tnmcNumber: "TNMC-2019-001", phone: "+255712345001", hourlyRate: 45000, available: true, verificationStatus: "verified", location: "Kinondoni", locationCoords: "-6.7924,39.2083" },

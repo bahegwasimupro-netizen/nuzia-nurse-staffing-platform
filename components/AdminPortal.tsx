@@ -12,6 +12,7 @@ import { AnalyticsDashboard } from "./AnalyticsDashboard";
 import { JobHistory } from "./JobHistory";
 import { sendVerificationEmail } from "./emailService";
 import { BottomNav } from "./BottomNav";
+import { SeedData } from "./SeedData";
 import L from "leaflet";
 
 interface Job {
@@ -365,6 +366,8 @@ export function AdminPortal() {
               <h3 className="text-sm uppercase font-semibold text-slate-400 tracking-wider mb-2">{t("admin.systemSecurity")}</h3>
               <p className="text-xs leading-relaxed text-slate-300">{t("admin.securityDesc")}</p>
             </div>
+
+            <SeedData />
           </div>
         </div>
       </main>
