@@ -3,7 +3,7 @@ import { useLang } from "./language";
 import { Search, Star, Users, Clock } from "lucide-react";
 
 export function Hero() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const navigate = useNavigate();
 
   return (
@@ -13,6 +13,21 @@ export function Hero() {
           <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full mb-6">
             <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
             <span className="text-sm font-semibold">{t("hero.badge")}</span>
+          </div>
+
+          <div className="flex items-center justify-center gap-4 mb-6 flex-wrap">
+            <div className="flex items-center gap-2 bg-emerald-500/20 backdrop-blur-sm px-4 py-2 rounded-full">
+              <span className="text-sm font-bold text-emerald-300">150+</span>
+              <span className="text-xs text-white/70">{lang === "sw" ? "Wauguzi Walioidhinishwa" : "Verified Nurses"}</span>
+            </div>
+            <div className="flex items-center gap-2 bg-amber-500/20 backdrop-blur-sm px-4 py-2 rounded-full">
+              <Star className="w-3.5 h-3.5 text-amber-400 fill-current" />
+              <span className="text-sm font-bold text-amber-300">4.9</span>
+              <span className="text-xs text-white/70">{lang === "sw" ? "Ukadiriaji" : "Rating"}</span>
+            </div>
+            <div className="flex items-center gap-2 bg-white/10 backdrop-blur-sm px-4 py-2 rounded-full">
+              <span className="text-xs text-white/70">{lang === "sw" ? "📍 Dar es Salaam" : "📍 Dar es Salaam"}</span>
+            </div>
           </div>
           <h1 className="text-4xl lg:text-6xl font-extrabold leading-tight mb-6">
             {t("hero.title1")}{" "}
