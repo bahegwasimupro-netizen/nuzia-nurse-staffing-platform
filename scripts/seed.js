@@ -1,8 +1,20 @@
-const admin = require("firebase-admin");
-const serviceAccount = require("../nuzia-3b9c0-firebase-adminsdk-fbsvc-5e7c8d2d85.json");
+#!/usr/bin/env node
+/**
+ * Nuzia Firestore Seed Script
+ * 
+ * Usage:
+ *   1. Make sure you're logged into Firebase CLI: `firebase login`
+ *   2. Run: `node scripts/seed.js`
+ *   
+ * This script uses the Google Cloud Admin SDK via Application Default Credentials.
+ * It will use whatever account you're logged in with via `firebase login`.
+ */
 
+const admin = require("firebase-admin");
+
+// Initialize with application default credentials (uses firebase login)
 admin.initializeApp({
-  credential: admin.credential.cert(serviceAccount),
+  projectId: "nuzia-3b9c0",
 });
 
 const db = admin.firestore();
@@ -25,60 +37,90 @@ const nurses = [
   { uid: "nurse_015", name: "Martha Nkwama", specialty: "ICU", experience: "13 years", tnmcNumber: "TNMC-2015-015", phone: "+255712345015", hourlyRate: 75000, available: false, verificationStatus: "verified", location: "Temeke", locationCoords: "-6.8750,39.2780" },
 ];
 
+const clients = [
+  { uid: "client_001", name: "Asha Bongwa", role: "client", phone: "+255722000001", location: "Oysterbay" },
+  { uid: "client_002", name: "Michael Temu", role: "client", phone: "+255722000002", location: "Masaki" },
+  { uid: "client_003", name: "Fatima Hassan", role: "client", phone: "+255722000003", location: "Upanga" },
+  { uid: "client_004", name: "Peter Kimambo", role: "client", phone: "+255722000004", location: "Sinza" },
+  { uid: "client_005", name: "John Mwangwa", role: "client", phone: "+255722000005", location: "Kigamboni" },
+  { uid: "client_006", name: "Neema Swai", role: "client", phone: "+255722000006", location: "Mikocheni" },
+  { uid: "client_007", name: "David Mkwanga", role: "client", phone: "+255722000007", location: "Tabata" },
+];
+
 const jobs = [
-  { jobId: "job_001", clientId: "client_001", clientName: "Asha Bongwa", serviceType: "Home Care", nurseId: "nurse_001", nurseName: "Fatuma Mwalimu", status: "Completed", paymentStatus: "Paid", amount: 45000, location: "Oysterbay, Dar es Salaam", locationCoords: "-6.7700,39.2900", createdAt: new Date("2026-06-15").toISOString() },
-  { jobId: "job_002", clientId: "client_002", clientName: "Michael Temu", serviceType: "ICU", nurseId: "nurse_002", nurseName: "John Massawe", status: "In Progress", paymentStatus: "Pending", amount: 75000, location: "Masaki, Dar es Salaam", locationCoords: "-6.7800,39.2950", createdAt: new Date("2026-07-01").toISOString() },
-  { jobId: "job_003", clientId: "client_003", clientName: "Fatima Hassan", serviceType: "Pediatric", nurseId: "nurse_003", nurseName: "Amina Juma", status: "Assigned", paymentStatus: "Pending", amount: 55000, location: "Upanga, Dar es Salaam", locationCoords: "-6.8100,39.2800", createdAt: new Date("2026-07-10").toISOString() },
-  { jobId: "job_004", clientId: "client_004", clientName: "Peter Kimambo", serviceType: "Home Care", nurseId: "", nurseName: "", status: "Pending", paymentStatus: "Pending", amount: 45000, location: "Sinza, Dar es Salaam", locationCoords: "-6.7750,39.2450", createdAt: new Date("2026-07-12").toISOString() },
-  { jobId: "job_005", clientId: "client_001", clientName: "Asha Bongwa", serviceType: "Cardiac", nurseId: "nurse_004", nurseName: "Hassan Mwinyi", status: "Completed", paymentStatus: "Paid", amount: 65000, location: "Oysterbay, Dar es Salaam", locationCoords: "-6.7700,39.2900", createdAt: new Date("2026-06-20").toISOString() },
-  { jobId: "job_006", clientId: "client_005", clientName: "John Mwangwa", serviceType: "Home Care", nurseId: "nurse_007", nurseName: "Grace Mwamba", status: "Completed", paymentStatus: "Paid", amount: 45000, location: "Kigamboni, Dar es Salaam", locationCoords: "-6.8300,39.3000", createdAt: new Date("2026-06-25").toISOString() },
-  { jobId: "job_007", clientId: "client_006", clientName: "Neema Swai", serviceType: "Pediatric", nurseId: "nurse_013", nurseName: "Zainabu Hamisi", status: "In Progress", paymentStatus: "Pending", amount: 55000, location: "Mikocheni, Dar es Salaam", locationCoords: "-6.7800,39.2600", createdAt: new Date("2026-07-08").toISOString() },
-  { jobId: "job_008", clientId: "client_007", clientName: "David Mkwanga", serviceType: "ICU", nurseId: "", nurseName: "", status: "Pending", paymentStatus: "Pending", amount: 75000, location: "Tabata, Dar es Salaam", locationCoords: "-6.8400,39.2700", createdAt: new Date("2026-07-12").toISOString() },
+  { id: "job_001", clientId: "client_001", clientName: "Asha Bongwa", type: "Home Care", nurseId: "nurse_001", nurseName: "Fatuma Mwalimu", status: "Completed", paymentStatus: "Paid", amount: 45000, location: "Oysterbay, Dar es Salaam", locationCoords: "-6.7700,39.2900", description: "Post-surgery home care for elderly mother", datetime: new Date("2026-06-15T09:00:00").toISOString(), createdAt: new Date("2026-06-14").toISOString() },
+  { id: "job_002", clientId: "client_002", clientName: "Michael Temu", type: "ICU", nurseId: "nurse_002", nurseName: "John Massawe", status: "Care in Progress", paymentStatus: "Unpaid", amount: 75000, location: "Masaki, Dar es Salaam", locationCoords: "-6.7800,39.2950", description: "ICU support for father in critical condition", datetime: new Date("2026-07-10T08:00:00").toISOString(), createdAt: new Date("2026-07-09").toISOString() },
+  { id: "job_003", clientId: "client_003", clientName: "Fatima Hassan", type: "Pediatric", nurseId: "nurse_003", nurseName: "Amina Juma", status: "Nurse Assigned", paymentStatus: "Unpaid", amount: 55000, location: "Upanga, Dar es Salaam", locationCoords: "-6.8100,39.2800", description: "Pediatric care for child with malaria", datetime: new Date("2026-07-13T10:00:00").toISOString(), createdAt: new Date("2026-07-12").toISOString() },
+  { id: "job_004", clientId: "client_004", clientName: "Peter Kimambo", type: "Home Care", nurseId: "", nurseName: "", status: "Pending Assignment", paymentStatus: "Unpaid", amount: 45000, location: "Sinza, Dar es Salaam", locationCoords: "-6.7750,39.2450", description: "Daily home care visit for recovering patient", datetime: new Date("2026-07-14T09:00:00").toISOString(), createdAt: new Date("2026-07-12").toISOString() },
+  { id: "job_005", clientId: "client_001", clientName: "Asha Bongwa", type: "Cardiac", nurseId: "nurse_004", nurseName: "Hassan Mwinyi", status: "Completed", paymentStatus: "Paid", amount: 65000, location: "Oysterbay, Dar es Salaam", locationCoords: "-6.7700,39.2900", description: "Cardiac monitoring for father", datetime: new Date("2026-06-20T14:00:00").toISOString(), createdAt: new Date("2026-06-19").toISOString() },
+  { id: "job_006", clientId: "client_005", clientName: "John Mwangwa", type: "Home Care", nurseId: "nurse_007", nurseName: "Grace Mwamba", status: "Completed", paymentStatus: "Paid", amount: 45000, location: "Kigamboni, Dar es Salaam", locationCoords: "-6.8300,39.3000", description: "Post-natal home care for wife", datetime: new Date("2026-06-25T10:00:00").toISOString(), createdAt: new Date("2026-06-24").toISOString() },
+  { id: "job_007", clientId: "client_006", clientName: "Neema Swai", type: "Pediatric", nurseId: "nurse_013", nurseName: "Zainabu Hamisi", status: "Care in Progress", paymentStatus: "Unpaid", amount: 55000, location: "Mikocheni, Dar es Salaam", locationCoords: "-6.7800,39.2600", description: "Pediatric care for twins with respiratory infection", datetime: new Date("2026-07-11T07:00:00").toISOString(), createdAt: new Date("2026-07-10").toISOString() },
+  { id: "job_008", clientId: "client_007", clientName: "David Mkwanga", type: "ICU", nurseId: "", nurseName: "", status: "Pending Assignment", paymentStatus: "Unpaid", amount: 75000, location: "Tabata, Dar es Salaam", locationCoords: "-6.8400,39.2700", description: "Emergency ICU support needed urgently", datetime: new Date("2026-07-13T16:00:00").toISOString(), createdAt: new Date("2026-07-13").toISOString() },
 ];
 
 const reviews = [
-  { reviewId: "rev_001", jobId: "job_001", clientId: "client_001", clientName: "Asha Bongwa", nurseId: "nurse_001", nurseName: "Fatuma Mwalimu", rating: 5, comment: "Fatuma was excellent! Very professional and caring. My mother received outstanding home care.", createdAt: new Date("2026-06-16").toISOString() },
-  { reviewId: "rev_002", jobId: "job_005", clientId: "client_001", clientName: "Asha Bongwa", nurseId: "nurse_004", nurseName: "Hassan Mwinyi", rating: 4, comment: "Hassan was very knowledgeable about cardiac care. Good service overall.", createdAt: new Date("2026-06-21").toISOString() },
-  { reviewId: "rev_003", jobId: "job_006", clientId: "client_005", clientName: "John Mwangwa", nurseId: "nurse_007", nurseName: "Grace Mwamba", rating: 5, comment: "Grace went above and beyond. Highly recommended for home care services.", createdAt: new Date("2026-06-26").toISOString() },
-  { reviewId: "rev_004", jobId: "job_001", clientId: "client_008", clientName: "Saidi Omari", nurseId: "nurse_002", nurseName: "John Massawe", rating: 5, comment: "John is an ICU specialist who handled my father's critical care with utmost professionalism.", createdAt: new Date("2026-07-02").toISOString() },
-  { reviewId: "rev_005", jobId: "job_006", clientId: "client_009", clientName: "Mama Nuru", nurseId: "nurse_006", nurseName: "David Shirima", rating: 4, comment: "David was punctual and very skilled. The ICU setup at home was managed perfectly.", createdAt: new Date("2026-07-05").toISOString() },
+  { id: "rev_001", jobId: "job_001", clientId: "client_001", clientName: "Asha Bongwa", nurseId: "nurse_001", nurseName: "Fatuma Mwalimu", rating: 5, comment: "Fatuma was excellent! Very professional and caring. My mother received outstanding home care.", createdAt: new Date("2026-06-16").toISOString() },
+  { id: "rev_002", jobId: "job_005", clientId: "client_001", clientName: "Asha Bongwa", nurseId: "nurse_004", nurseName: "Hassan Mwinyi", rating: 4, comment: "Hassan was very knowledgeable about cardiac care. Good service overall.", createdAt: new Date("2026-06-21").toISOString() },
+  { id: "rev_003", jobId: "job_006", clientId: "client_005", clientName: "John Mwangwa", nurseId: "nurse_007", nurseName: "Grace Mwamba", rating: 5, comment: "Grace went above and beyond. Highly recommended for home care services.", createdAt: new Date("2026-06-26").toISOString() },
+  { id: "rev_004", jobId: "job_002", clientId: "client_002", clientName: "Michael Temu", nurseId: "nurse_002", nurseName: "John Massawe", rating: 5, comment: "John is an ICU specialist who handled my father's critical care with utmost professionalism.", createdAt: new Date("2026-07-02").toISOString() },
+  { id: "rev_005", jobId: "job_007", clientId: "client_006", clientName: "Neema Swai", nurseId: "nurse_006", nurseName: "David Shirima", rating: 4, comment: "David was punctual and very skilled. The care at home was managed perfectly.", createdAt: new Date("2026-07-05").toISOString() },
 ];
 
 async function seedFirestore() {
-  console.log("Seeding Firestore...");
+  console.log("Seeding Firestore for project nuzia-3b9c0...\n");
 
   // Seed nurses
+  console.log("Creating nurses...");
   for (const nurse of nurses) {
     await db.collection("users").doc(nurse.uid).set({
       ...nurse,
       role: "nurse",
       createdAt: new Date().toISOString(),
     });
-    console.log(`  Created nurse: ${nurse.name}`);
+    console.log(`  + ${nurse.name} (${nurse.specialty}, ${nurse.verificationStatus})`);
+  }
+
+  // Seed clients
+  console.log("\nCreating clients...");
+  for (const client of clients) {
+    await db.collection("users").doc(client.uid).set({
+      ...client,
+      email: `${client.name.toLowerCase().replace(/\s/g, ".")}@demo.nuzia`,
+      createdAt: new Date().toISOString(),
+    });
+    console.log(`  + ${client.name}`);
   }
 
   // Seed jobs
+  console.log("\nCreating jobs...");
   for (const job of jobs) {
-    await db.collection("jobs").doc(job.jobId).set({
+    await db.collection("jobs").doc(job.id).set({
       ...job,
-      createdAt: new Date().toISOString(),
+      assignedNurseId: job.nurseId || undefined,
+      assignedNurseName: job.nurseName || undefined,
     });
-    console.log(`  Created job: ${job.jobId} - ${job.clientName}`);
+    console.log(`  + ${job.id}: ${job.clientName} -> ${job.nurseName || "Unassigned"} (${job.status})`);
   }
 
   // Seed reviews
+  console.log("\nCreating reviews...");
   for (const review of reviews) {
-    await db.collection("reviews").doc(review.reviewId).set({
-      ...review,
-      createdAt: new Date().toISOString(),
-    });
-    console.log(`  Created review: ${review.reviewId} - ${review.clientName}`);
+    await db.collection("reviews").doc(review.id).set(review);
+    console.log(`  + ${review.nurseName}: ${review.rating}/5 - "${review.comment.substring(0, 40)}..."`);
   }
 
-  console.log("Seeding complete!");
+  console.log("\n=============================");
+  console.log("Seed complete!");
   console.log(`  ${nurses.length} nurses`);
+  console.log(`  ${clients.length} clients`);
   console.log(`  ${jobs.length} jobs`);
   console.log(`  ${reviews.length} reviews`);
+  console.log("=============================");
 }
 
-seedFirestore().catch(console.error);
+seedFirestore()
+  .then(() => process.exit(0))
+  .catch((err) => {
+    console.error("Seed failed:", err);
+    process.exit(1);
+  });
