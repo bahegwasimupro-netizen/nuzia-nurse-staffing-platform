@@ -298,7 +298,7 @@ export function ClientPortal() {
     <div className="min-h-screen bg-[#f8fafc] flex flex-col">
       <header className="bg-white shadow-sm border-b">
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => navigate("/")}>
             <div className="w-10 h-10 bg-gradient-to-br from-[#1e3a5f] to-[#2563eb] rounded-xl flex items-center justify-center shadow-md">
               <span className="text-white font-bold text-lg">N</span>
             </div>
