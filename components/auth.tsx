@@ -38,6 +38,7 @@ interface AuthContextType {
   signUp: (email: string, password: string, name: string, role: "client" | "nurse" | "admin", phone?: string, specialty?: string) => Promise<UserProfile>;
   logout: () => Promise<void>;
   updateProfile: (data: Partial<UserProfile>) => Promise<void>;
+  updateUserByUid: (uid: string, data: Partial<UserProfile>) => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
 }
 
@@ -333,6 +334,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Update any user by UID (admin function)
+  const updateUserByUid = async (uid: string, data: Partial<UserProfile>) => {
+    if (isMock) {
+      const mockUsers = getMockUsers();
+      const idx = mockUsers.findIndex(u => u.uid === uid);
+      if (idx !== -1) {
+        mockUsers[idx] = { ...mockUsers[idx], ...data } as UserProfile;
+        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(mockUsers));
+      }
+    } else {
+      try {
+        await setDoc(doc(db, "users", uid), data, { merge: true });
+      } catch (e) {
+        console.error("Firestore update failed for uid:", uid, e);
+      }
+    }
+  };
+
   // Reset Password
   const resetPassword = async (email: string) => {
     if (isMock) {
@@ -343,7 +362,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, isMock, signIn, signUp, logout, updateProfile, resetPassword }}>
+    <AuthContext.Provider value={{ user, userProfile, loading, isMock, signIn, signUp, logout, updateProfile, updateUserByUid, resetPassword }}>
       {children}
     </AuthContext.Provider>
   );

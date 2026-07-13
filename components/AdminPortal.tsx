@@ -28,6 +28,7 @@ interface Job {
   assignedNurseId?: string;
   assignedNurseName?: string;
   assignedNursePhone?: string;
+  amount?: number;
   createdAt: string;
 }
 
@@ -35,12 +36,13 @@ const LOCAL_JOBS_KEY = "nuzia_mock_jobs";
 const LOCAL_USERS_KEY = "nuzia_mock_users";
 
 export function AdminPortal() {
-  const { logout, isMock, updateProfile } = useAuth();
+  const { logout, isMock, updateUserByUid } = useAuth();
   const { t, lang } = useLang();
   const { addNotification } = useNotifications();
   const navigate = useNavigate();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [nurses, setNurses] = useState<UserProfile[]>([]);
+  const [reviews, setReviews] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [assigningJobId, setAssigningJobId] = useState<string | null>(null);
   const [selectedNurseId, setSelectedNurseId] = useState<string>("");
@@ -58,6 +60,8 @@ export function AdminPortal() {
         const localUsers = localStorage.getItem(LOCAL_USERS_KEY);
         if (localUsers) { const parsed: UserProfile[] = JSON.parse(localUsers); setNurses(parsed.filter(u => u.role === "nurse")); }
         else { setNurses(getMockUsers().filter(u => u.role === "nurse")); }
+        const localReviews = localStorage.getItem("nuzia_mock_reviews");
+        setReviews(localReviews ? JSON.parse(localReviews) : []);
       };
       loadMockData();
       const interval = setInterval(loadMockData, 3000);
@@ -73,7 +77,12 @@ export function AdminPortal() {
         snapshot.forEach((doc) => { const profile = doc.data() as UserProfile; if (profile.role === "nurse") loadedNurses.push(profile); });
         setNurses(loadedNurses);
       });
-      return () => { unsubJobs(); unsubNurses(); };
+      const unsubReviews = onSnapshot(collection(db, "reviews"), (snapshot) => {
+        const loadedReviews: any[] = [];
+        snapshot.forEach((doc) => loadedReviews.push({ id: doc.id, ...doc.data() }));
+        setReviews(loadedReviews);
+      });
+      return () => { unsubJobs(); unsubNurses(); unsubReviews(); };
     }
   }, [isMock]);
 
@@ -155,19 +164,33 @@ export function AdminPortal() {
     d.setDate(d.getDate() - (6 - i));
     return d.toLocaleDateString(dateLocale, { weekday: "short" });
   });
-  const revenueData = dayLabels.map((label, i) => ({
-    label,
-    value: Math.round(totalEarnings * (0.08 + Math.random() * 0.2)),
-  }));
-  const jobsData = dayLabels.map((label) => ({
-    label,
-    value: Math.max(1, Math.round(jobs.length * (0.05 + Math.random() * 0.25))),
-  }));
-  const topNurses = nurses.filter(n => n.verificationStatus === "verified").slice(0, 5).map(n => ({
-    name: n.name,
-    jobs: Math.floor(Math.random() * 10) + 1,
-    rating: 4 + Math.random(),
-  }));
+
+  const revenueData = dayLabels.map((label, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString();
+    const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).toISOString();
+    const dayRevenue = jobs
+      .filter(j => j.paymentStatus === "Paid" && j.createdAt >= dayStart && j.createdAt < dayEnd)
+      .reduce((sum, j) => sum + (j.amount || 45000), 0);
+    return { label, value: dayRevenue };
+  });
+
+  const jobsData = dayLabels.map((label, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const dayStart = new Date(d.getFullYear(), d.getMonth(), d.getDate()).toISOString();
+    const dayEnd = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1).toISOString();
+    const dayJobs = jobs.filter(j => j.createdAt >= dayStart && j.createdAt < dayEnd).length;
+    return { label, value: dayJobs };
+  });
+
+  const topNurses = nurses.filter(n => n.verificationStatus === "verified").slice(0, 5).map(n => {
+    const nurseJobs = jobs.filter(j => j.nurseName === n.name);
+    const nurseReviews = reviews.filter(r => r.nurseName === n.name);
+    const avgRat = nurseReviews.length > 0 ? nurseReviews.reduce((s, r) => s + r.rating, 0) / nurseReviews.length : 0;
+    return { name: n.name, jobs: nurseJobs.length, rating: Math.round(avgRat * 10) / 10 || 0 };
+  });
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col">
@@ -315,10 +338,10 @@ export function AdminPortal() {
                       )}
                       {nurse.verificationStatus === "pending" && (
                         <div className="flex gap-1">
-                          <button onClick={async () => { await updateProfile({ ...nurse, verificationStatus: "verified" }); addNotification(lang === "sw" ? "Mhudumu Amethibitishwa" : "Nurse Verified", `${nurse.name} ${lang === "sw" ? "amethibitishwa" : "has been verified"}`, "verification_approved"); sendVerificationEmail(nurse.phone || "", nurse.name, "approved"); }} className="text-[10px] font-bold text-white bg-emerald-600 px-2 py-0.5 rounded hover:bg-emerald-700 transition">
+                          <button onClick={async () => { await updateUserByUid(nurse.uid, { verificationStatus: "verified" }); addNotification(lang === "sw" ? "Mhudumu Amethibitishwa" : "Nurse Verified", `${nurse.name} ${lang === "sw" ? "amethibitishwa" : "has been verified"}`, "verification_approved"); sendVerificationEmail(nurse.phone || "", nurse.name, "approved"); }} className="text-[10px] font-bold text-white bg-emerald-600 px-2 py-0.5 rounded hover:bg-emerald-700 transition">
                             {lang === "sw" ? "Idhinisha" : "Approve"}
                           </button>
-                          <button onClick={async () => { await updateProfile({ ...nurse, verificationStatus: "rejected" }); addNotification(lang === "sw" ? "Mhudumu Umekataliwa" : "Nurse Rejected", `${nurse.name} ${lang === "sw" ? "umekataliwa" : "has been rejected"}`, "verification_rejected"); sendVerificationEmail(nurse.phone || "", nurse.name, "rejected"); }} className="text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded hover:bg-red-600 transition">
+                          <button onClick={async () => { await updateUserByUid(nurse.uid, { verificationStatus: "rejected" }); addNotification(lang === "sw" ? "Mhudumu Umekataliwa" : "Nurse Rejected", `${nurse.name} ${lang === "sw" ? "umekataliwa" : "has been rejected"}`, "verification_rejected"); sendVerificationEmail(nurse.phone || "", nurse.name, "rejected"); }} className="text-[10px] font-bold text-white bg-red-500 px-2 py-0.5 rounded hover:bg-red-600 transition">
                             {lang === "sw" ? "Kataa" : "Reject"}
                           </button>
                         </div>

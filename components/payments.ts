@@ -35,6 +35,11 @@ export function formatAmount(amount: number): string {
   return `TSh ${amount.toLocaleString()}`;
 }
 
+// Cloud Functions base URL (auto-detected)
+const FUNCTIONS_BASE = import.meta.env.DEV
+  ? "http://127.0.0.1:5001/nuzia-3b9c0/africa-south1"
+  : "https://africa-south1-nuzia-3b9c0.cloudfunctions.net";
+
 export async function initiateStkPush(
   phone: string,
   amount: number,
@@ -64,9 +69,28 @@ export async function initiateStkPush(
     return { checkoutRequestId: mockId, status: "pending" };
   }
 
-  // Production: calls your Cloud Function endpoint
-  // POST https://your-cloud-function/stkpush { phone: cleaned, amount, jobId, accountId: clientId }
-  throw new Error("Production STK push requires Cloud Functions backend. Deploy firebase functions first.");
+  // Production: call Cloud Function
+  try {
+    const response = await fetch(`${FUNCTIONS_BASE}/initiateStkPush`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ phone: cleaned, amount, jobId, clientId, accountRef: jobId }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.error || "Payment initiation failed");
+    }
+
+    return {
+      checkoutRequestId: data.checkoutRequestId,
+      status: data.status,
+    };
+  } catch (error: any) {
+    console.error("STK Push failed:", error);
+    throw error;
+  }
 }
 
 export async function pollPaymentStatus(
@@ -76,12 +100,10 @@ export async function pollPaymentStatus(
   intervalMs = 2000
 ): Promise<"completed" | "failed" | "timeout"> {
   if (isMock) {
-    // Simulate STK push flow: user gets prompt, enters PIN
     let attempts = 0;
     while (attempts < maxAttempts) {
       await new Promise((r) => setTimeout(r, intervalMs));
       attempts++;
-      // After 3 attempts (~6s), simulate success
       if (attempts >= 3) {
         try {
           await updateDoc(doc(db, "payments", checkoutRequestId), {
@@ -95,9 +117,29 @@ export async function pollPaymentStatus(
     return "timeout";
   }
 
-  // Production: poll your Cloud Function
-  // GET https://your-cloud-function/checkstatus?id=checkoutRequestId
-  throw new Error("Production polling requires Cloud Functions backend.");
+  // Production: poll Cloud Function
+  let attempts = 0;
+  while (attempts < maxAttempts) {
+    try {
+      const response = await fetch(`${FUNCTIONS_BASE}/checkPaymentStatus`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: checkoutRequestId }),
+      });
+
+      const data = await response.json();
+
+      if (data.status === "completed") return "completed";
+      if (data.status === "failed") return "failed";
+    } catch (error) {
+      console.error("Payment status check failed:", error);
+    }
+
+    await new Promise((r) => setTimeout(r, intervalMs));
+    attempts++;
+  }
+
+  return "timeout";
 }
 
 export async function markJobPaid(jobId: string, paymentId: string, isMock: boolean): Promise<void> {
